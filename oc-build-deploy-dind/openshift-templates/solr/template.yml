@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Template
 metadata:
   creationTimestamp: null
-  name: lagoon-openshift-template-redis
+  name: lagoon-openshift-template-solr
 parameters:
   - name: SERVICE_NAME
     description: Name of this service
@@ -31,7 +31,20 @@ parameters:
   - name: REGISTRY
     description: Registry where Images are pushed to
     required: true
+  - name: PERSISTENT_STORAGE_PATH
+    description: Full path to which should be mounted into persistent storage
+    required: true
 objects:
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: ${SERVICE_NAME}
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 5Gi
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
@@ -45,7 +58,7 @@ objects:
     selector:
       service: ${SERVICE_NAME}
     strategy:
-      type: Recreate
+      resources: {}
     template:
       metadata:
         creationTimestamp: null
@@ -54,25 +67,35 @@ objects:
           branch: ${SAFE_BRANCH}
           project: ${SAFE_PROJECT}
       spec:
+        volumes:
+          - name: ${SERVICE_NAME}
+            persistentVolumeClaim:
+              claimName: ${SERVICE_NAME}
         containers:
         - image: ${REGISTRY}/${OPENSHIFT_PROJECT}/${SERVICE_NAME}:latest
           name: ${SERVICE_NAME}
           ports:
-          - containerPort: 6379
+          - containerPort: 8149
             protocol: TCP
           readinessProbe:
-            tcpSocket:
-              port: 6379
-            initialDelaySeconds: 15
-            timeoutSeconds: 1
+            httpGet:
+              path: /solr
+              port: 8983
+            initialDelaySeconds: 5
+            timeoutSeconds: 3
           livenessProbe:
-            tcpSocket:
-              port: 6379
-            initialDelaySeconds: 120
-            periodSeconds: 5
+            httpGet:
+              path: /solr
+              port: 8983
+            initialDelaySeconds: 90
+            timeoutSeconds: 3
+            failureThreshold: 5
           envFrom:
           - configMapRef:
               name: lagoon-env
+          volumeMounts:
+            - name: ${SERVICE_NAME}
+              mountPath: ${PERSISTENT_STORAGE_PATH}
           resources:
             requests:
               cpu: 100m
@@ -100,10 +123,10 @@ objects:
     name: ${SERVICE_NAME}
   spec:
     ports:
-    - name: 6379-tcp
-      port: 6379
+    - name: http
+      port: 8983
       protocol: TCP
-      targetPort: 6379
+      targetPort: 8983
     selector:
       service: ${SERVICE_NAME}
   status:
