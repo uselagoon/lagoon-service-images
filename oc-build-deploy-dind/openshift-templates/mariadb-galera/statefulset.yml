@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Template
 metadata:
   creationTimestamp: null
-  name: lagoon-openshift-template-varnish
+  name: lagoon-openshift-template-mariadb-galera
 parameters:
   - name: SERVICE_NAME
     description: Name of this service
@@ -33,63 +33,64 @@ parameters:
     required: true
   - name: DEPLOYMENT_STRATEGY
     description: Strategy of Deploymentconfig
-    value: "Rolling"
+    value: "Recreate"
   - name: SERVICE_IMAGE
     description: Pullable image of service
     required: true
 objects:
-- apiVersion: v1
-  kind: DeploymentConfig
+- apiVersion: apps/v1beta1
+  kind: StatefulSet
   metadata:
-    creationTimestamp: null
-    labels:
-      service: ${SERVICE_NAME}
-      branch: ${SAFE_BRANCH}
-      project: ${SAFE_PROJECT}
-    name: ${SERVICE_NAME}
+    name: ${SERVICE_NAME}-galera
   spec:
-    replicas: 1
+    serviceName: ${SERVICE_NAME}-galera
+    replicas: 3
     selector:
-      service: ${SERVICE_NAME}
-    strategy:
-      type: ${DEPLOYMENT_STRATEGY}
+      matchLabels:
+        service: ${SERVICE_NAME}-galera
     template:
       metadata:
-        creationTimestamp: null
         labels:
-          service: ${SERVICE_NAME}
           branch: ${SAFE_BRANCH}
           project: ${SAFE_PROJECT}
+          service: ${SERVICE_NAME}-galera
       spec:
         containers:
-        - image: ${SERVICE_IMAGE}
-          name: ${SERVICE_NAME}
+        - name: ${SERVICE_NAME}-galera
+          image: ${SERVICE_IMAGE}
+          imagePullPolicy: Always
           ports:
-          - containerPort: 8080
-            protocol: TCP
+          - containerPort: 3306
+            name: mysql
+          - containerPort: 4444
+            name: sst
+          - containerPort: 4567
+            name: replication
+          - containerPort: 4568
+            name: ist
           readinessProbe:
-            httpGet:
-              path: /varnish_status
-              port: 8080
-            initialDelaySeconds: 5
-            timeoutSeconds: 3
-          livenessProbe:
-            httpGet:
-              path: /varnish_status
-              port: 8080
-            initialDelaySeconds: 90
-            timeoutSeconds: 3
-            failureThreshold: 5
-          envFrom:
-          - configMapRef:
-              name: lagoon-env
+            exec:
+              command:
+              - /usr/share/container-scripts/mysql/readiness-probe.sh
+            initialDelaySeconds: 15
+            timeoutSeconds: 5
+          volumeMounts:
+          - name: ${SERVICE_NAME}-galera
+            mountPath: /var/lib/mysql
+            subPath: data
           env:
-          - name: SERVICE_NAME
-            value: ${SERVICE_NAME}
-          resources:
-            requests:
-              cpu: 10m
-              memory: 10Mi
-    test: false
-    triggers:
-    - type: ConfigChange
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SERVICE_NAME
+              value: ${SERVICE_NAME}
+    volumeClaimTemplates:
+    - metadata:
+        name: ${SERVICE_NAME}-galera
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 5Gi
