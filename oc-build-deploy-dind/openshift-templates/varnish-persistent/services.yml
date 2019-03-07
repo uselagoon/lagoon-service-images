@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Template
 metadata:
   creationTimestamp: null
-  name: lagoon-openshift-template-schedule
+  name: lagoon-openshift-template-varnish
 parameters:
   - name: SERVICE_NAME
     description: Name of this service
@@ -31,33 +31,27 @@ parameters:
   - name: REGISTRY
     description: Registry where Images are pushed to
     required: true
-  - name: BACKUP_SCHEDULE
-    description: Schedule of the Backup in Cron format
-    required: true
-  - name: CHECK_SCHEDULE
-    description: Schedule of the Backup Check in Cron format
-    required: true
-  - name: PRUNE_SCHEDULE
-    description: Schedule of the Backup Prune in Cron format
-    required: true
 objects:
-- apiVersion: backup.appuio.ch/v1alpha1
-  kind: Schedule
+- apiVersion: v1
+  kind: Service
   metadata:
-    name: backup-schedule
+    creationTimestamp: null
+    labels:
+      service: ${SERVICE_NAME}
+      branch: ${SAFE_BRANCH}
+      project: ${SAFE_PROJECT}
+    name: ${SERVICE_NAME}
   spec:
-    backend:
-      repoPasswordSecretRef:
-        key: repo-pw
-        name: baas-repo-pw
-      s3:
-        bucket: 'baas-${PROJECT}'
-    backup:
-      schedule: '${BACKUP_SCHEDULE}'
-    check:
-      schedule: '${CHECK_SCHEDULE}'
-    prune:
-      retention:
-        keepDaily: 7
-        keepWeekly: 4
-      schedule: '${PRUNE_SCHEDULE}'
+    ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    - name: control
+      port: 6082
+      protocol: TCP
+      targetPort: 6082
+    selector:
+      service: ${SERVICE_NAME}
+  status:
+    loadBalancer: {}

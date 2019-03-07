@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Template
 metadata:
   creationTimestamp: null
-  name: lagoon-openshift-template-schedule
+  name: lagoon-openshift-template-varnish
 parameters:
   - name: SERVICE_NAME
     description: Name of this service
@@ -31,33 +31,29 @@ parameters:
   - name: REGISTRY
     description: Registry where Images are pushed to
     required: true
-  - name: BACKUP_SCHEDULE
-    description: Schedule of the Backup in Cron format
+  - name: PERSISTENT_STORAGE_PATH
+    description: Full path to which should be mounted into persistent storage
     required: true
-  - name: CHECK_SCHEDULE
-    description: Schedule of the Backup Check in Cron format
-    required: true
-  - name: PRUNE_SCHEDULE
-    description: Schedule of the Backup Prune in Cron format
-    required: true
+  - name: PERSISTENT_STORAGE_CLASS
+    description: Name of the Storage Class to use
+    value: "bulk"
+  - name: PERSISTENT_STORAGE_SIZE
+    description: Size of the Storage to request
+    value: "1Gi"
+  - name: DEPLOYMENT_STRATEGY
+    description: Strategy of Deploymentconfig
+    value: "Rolling"
 objects:
-- apiVersion: backup.appuio.ch/v1alpha1
-  kind: Schedule
+- apiVersion: v1
+  kind: PersistentVolumeClaim
   metadata:
-    name: backup-schedule
+    annotations:
+      appuio.ch/backup: "false"
+    name: ${SERVICE_NAME}
   spec:
-    backend:
-      repoPasswordSecretRef:
-        key: repo-pw
-        name: baas-repo-pw
-      s3:
-        bucket: 'baas-${PROJECT}'
-    backup:
-      schedule: '${BACKUP_SCHEDULE}'
-    check:
-      schedule: '${CHECK_SCHEDULE}'
-    prune:
-      retention:
-        keepDaily: 7
-        keepWeekly: 4
-      schedule: '${PRUNE_SCHEDULE}'
+    accessModes:
+    - ReadWriteOnce
+    storageClassName: "${PERSISTENT_STORAGE_CLASS}"
+    resources:
+      requests:
+        storage: ${PERSISTENT_STORAGE_SIZE}
