@@ -55,11 +55,6 @@ pipeline {
         sh script: "make -O -j$NPROC publish-testlagoon-baseimages publish-testlagoon-serviceimages publish-testlagoon-taskimages BRANCH_NAME=${SAFEBRANCH_NAME}", label: "Publishing built images"
       }
     }
-    stage ('run test suite') {
-      steps {
-        sh script: "make -j$NPROC kind/test BRANCH_NAME=${SAFEBRANCH_NAME}", label: "Running tests on kind cluster"
-      }
-    }
     stage ('push images to testlagoon/* with :latest tag') {
       when {
         branch 'main'
@@ -70,17 +65,6 @@ pipeline {
       steps {
         sh script: 'docker login -u amazeeiojenkins -p $PASSWORD', label: "Docker login"
         sh script: "make -O -j$NPROC publish-testlagoon-baseimages publish-testlagoon-serviceimages publish-testlagoon-taskimages BRANCH_NAME=latest", label: "Publishing built images with :latest tag"
-      }
-    }
-    stage ('deploy to test environment') {
-      when {
-        branch 'main'
-      }
-      environment {
-        TOKEN = credentials('vshn-gitlab-helmfile-ci-trigger')
-      }
-      steps {
-        sh script: "curl -X POST -F token=$TOKEN -F ref=master https://git.vshn.net/api/v4/projects/1263/trigger/pipeline", label: "Trigger lagoon-core helmfile sync on amazeeio-test6"
       }
     }
     stage ('push images to uselagoon/*') {
@@ -101,9 +85,6 @@ pipeline {
   }
 
   post {
-    always {
-      sh "make clean kind/clean"
-    }
     success {
       notifySlack('SUCCESS')
       deleteDir()
