@@ -3,7 +3,7 @@ pipeline {
   environment {
     // configure build params
     CI_BUILD_TAG = env.BUILD_TAG.replaceAll('%2f','').replaceAll('[^A-Za-z0-9]+', '').toLowerCase()
-    SAFEBRANCH_NAME = env.BRANCH_NAME.replaceAll('%2f','-').replaceAll('[^A-Za-z0-9]+', '-').toLowerCase()
+    SAFEBRANCH_NAME = env.BRANCH_NAME.replaceAll('%2f','-').replaceAll('[^A-Za-z0-9]+', '-').toLowerCase().concat('-si')
     NPROC = "${sh(script:'getconf _NPROCESSORS_ONLN', returnStdout: true).trim()}"
   }
 
@@ -33,6 +33,7 @@ pipeline {
     }
     stage ('build images') {
       steps {
+        sh script: "make clean", label: "Ensuring clean image build directory"
         sh script: "make -O -j$NPROC build", label: "Building images"
       }
     }
