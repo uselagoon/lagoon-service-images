@@ -1,9 +1,6 @@
-ARG UPSTREAM_REPO
-ARG UPSTREAM_TAG
-FROM ${UPSTREAM_REPO:-uselagoon}/nginx:${UPSTREAM_TAG:-latest}
+FROM uselagoon/nginx:latest
 
-ARG LAGOON_VERSION
-ENV LAGOON_VERSION=$LAGOON_VERSION
+LABEL maintainer="The Lagoon Authors"
 
 ADD nginx.conf /etc/nginx/conf.d/app.conf
 ADD web/ /app/

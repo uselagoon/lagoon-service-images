@@ -1,13 +1,8 @@
-ARG UPSTREAM_REPO
-ARG UPSTREAM_TAG
-FROM ${UPSTREAM_REPO:-uselagoon}/commons:${UPSTREAM_TAG:-latest} as commons
+FROM uselagoon/commons:latest as commons
+
 FROM docker:20.10.14-dind
 
-LABEL maintainer="amazee.io"
-ENV LAGOON=docker-host
-
-ARG LAGOON_VERSION
-ENV LAGOON_VERSION=$LAGOON_VERSION
+LABEL maintainer="The Lagoon Authors"
 
 # Copy commons files
 COPY --from=commons /lagoon /lagoon

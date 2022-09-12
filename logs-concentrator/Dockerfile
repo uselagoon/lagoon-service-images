@@ -1,8 +1,6 @@
 FROM fluent/fluentd:v1.14-1
-LABEL maintainer="support@amazee.io"
 
-ARG LAGOON_VERSION
-ENV LAGOON_VERSION=$LAGOON_VERSION
+LABEL maintainer="The Lagoon Authors"
 
 USER root
 
