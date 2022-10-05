@@ -13,6 +13,9 @@ on:
   pull_request:
     branches:
       - 'main'
+    paths:
+      - 'docker-host/**'
+      - '.github/workflows/docker-host-image.yaml'
 
 jobs:
   docker:

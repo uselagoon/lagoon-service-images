@@ -13,6 +13,9 @@ on:
   pull_request:
     branches:
       - 'main'
+    paths:
+      - 'logs-concentrator/**'
+      - '.github/workflows/logs-concentrator-image.yaml'
 
 jobs:
   docker:

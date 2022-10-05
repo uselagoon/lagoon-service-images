@@ -13,6 +13,9 @@ on:
   pull_request:
     branches:
       - 'main'
+    paths:
+      - 'drush-alias/**'
+      - '.github/workflows/drush-alias-image.yaml'
 
 jobs:
   docker:

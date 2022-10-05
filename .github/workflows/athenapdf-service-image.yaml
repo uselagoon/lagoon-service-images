@@ -13,6 +13,10 @@ on:
   pull_request:
     branches:
       - 'main'
+    paths:
+      - 'athenapdf-service/**'
+      - '.github/workflows/athenapdf-service-image.yaml'
+
 
 jobs:
   docker:
