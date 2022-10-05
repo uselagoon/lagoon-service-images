@@ -1,0 +1,106 @@
+name: Publish drush-alias image
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'build-image'
+    paths:
+      - 'drush-alias/**'
+      - '.github/workflows/drush-alias-image.yaml'
+    tags:
+      - 'drush-alias-v*.*.*'
+  pull_request:
+    branches:
+      - 'main'
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout PR
+        uses: actions/checkout@v3
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          fetch-depth: "0"
+          ref: ${{ github.event.pull_request.head.sha }}
+      -
+        name: Checkout Branch or Tag
+        uses: actions/checkout@v3
+        if: ${{ github.event_name != 'pull_request' }}
+        with:
+          fetch-depth: "0"
+      -
+        name: Create SERVICE_TAG variable
+        id: service_tag_var
+        run: |
+          RAW_TAG=$(echo $(git describe --abbrev=0 --tags --match 'drush-alias-*'))
+          SERVICE_TAG=${RAW_TAG#"drush-alias-"}
+          echo "using drush-alias tag $SERVICE_TAG"
+          echo "SERVICE_TAG=$SERVICE_TAG" >> $GITHUB_ENV
+      -
+        name: Set version for non-tag build
+        if: "!startsWith(github.ref, 'refs/tags/drush-alias')"
+        id: version_non-tag_build
+        run: |
+          DOCKER_TAG=${{ env.SERVICE_TAG }}-$(git rev-parse --short=8 HEAD)
+          echo "DOCKER_TAG=$DOCKER_TAG" >> $GITHUB_ENV
+          echo "drush-alias version $DOCKER_TAG"
+      -
+        name: Set version for tag build
+        if: "startsWith(github.ref, 'refs/tags/drush-alias')"
+        id: version_tag_build
+        run: |
+          DOCKER_TAG=${{ env.SERVICE_TAG }}
+          echo "DOCKER_TAG=$DOCKER_TAG" >> $GITHUB_ENV
+          echo "drush-alias version $DOCKER_TAG"
+      -
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            ${{ github.repository_owner }}/drush-alias
+            ghcr.io/${{ github.repository_owner }}/drush-alias
+          tags: |
+            # set edge tag for default branch
+            type=edge,enable={{is_default_branch}}
+            # set tag+build for default branch
+            type=raw,value=${{ env.DOCKER_TAG}},enable={{is_default_branch}}
+            # tag event
+            type=raw,value=${{ env.DOCKER_TAG}},enable=${{ startsWith(github.ref, 'refs/tags/drush-alias') }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/drush-alias') }}
+            # pull request event
+            type=ref,event=pr
+            # pull request event
+            type=ref,event=branch
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Login to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: drush-alias
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

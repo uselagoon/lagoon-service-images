@@ -1,8 +1,7 @@
 FROM fluent/fluentd:v1.14-1
-LABEL maintainer="support@amazee.io"
 
-ARG LAGOON_VERSION
-ENV LAGOON_VERSION=$LAGOON_VERSION
+LABEL org.opencontainers.image.authors="The Lagoon Authors" maintainer="The Lagoon Authors"
+LABEL org.opencontainers.image.source="https://github.com/uselagoon/lagoon-service-images" repository="https://github.com/uselagoon/lagoon-service-images"
 
 USER root
 
