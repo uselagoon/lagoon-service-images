@@ -10,7 +10,7 @@ RUN apk add --no-cache --update --virtual .build-deps \
       && gem sources --update \
       && gem install fluent-plugin-cloudwatch-logs \
       && gem install fluent-plugin-datadog \
-      && gem install fluent-plugin-kubernetes_metadata_filter \
+      && gem install fluent-plugin-kubernetes_metadata_filter -v 2.12.0 \
       && gem install fluent-plugin-multi-format-parser \
       && gem install fluent-plugin-prometheus \
       && gem install fluent-plugin-rabbitmq \
