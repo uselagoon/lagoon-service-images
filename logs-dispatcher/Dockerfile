@@ -1,31 +1,18 @@
-FROM fluent/fluentd:v1.14-1
+FROM fluent/fluentd:v1.15-1
 
 LABEL org.opencontainers.image.authors="The Lagoon Authors" maintainer="The Lagoon Authors"
 LABEL org.opencontainers.image.source="https://github.com/uselagoon/lagoon-service-images" repository="https://github.com/uselagoon/lagoon-service-images"
 
 USER root
 
+COPY Gemfile Gemfile.lock /
+
 RUN apk add --no-cache --update --virtual .build-deps \
-      build-base ruby-dev \
-      && gem sources --update \
-      && gem install fluent-plugin-cloudwatch-logs \
-      && gem install fluent-plugin-datadog \
-      && gem install fluent-plugin-kubernetes_metadata_filter -v 2.10.0 \
-      && gem install fluent-plugin-multi-format-parser \
-      && gem install fluent-plugin-prometheus \
-      && gem install fluent-plugin-rabbitmq \
-      && gem install fluent-plugin-record-modifier \
-      && gem install fluent-plugin-remote-syslog \
-      && gem install fluent-plugin-rewrite-tag-filter \
-      && gem install fluent-plugin-route \
-      && gem install fluent-plugin-s3 --no-document \
-      && gem install fluent-plugin-splunk-enterprise \
-      && gem install fluent-plugin-sumologic_output \
+      build-base ruby-dev ruby-bundler \
+      && BUNDLE_FROZEN=true BUNDLE_SYSTEM=true bundle install \
       && gem list \
-      && gem sources --clear-all \
       && apk del .build-deps \
-      && rm -rf /tmp/* /var/tmp/* /usr/lib/ruby/gems/*/cache/*.gem \
-      && apk add --no-cache curl
+      && apk add --no-cache curl jq
 
 COPY fluent.conf /fluentd/etc/
 COPY entrypoint.sh /bin/
