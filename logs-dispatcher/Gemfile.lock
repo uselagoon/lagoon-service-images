@@ -5,8 +5,8 @@ GEM
       public_suffix (>= 2.0.2, < 6.0)
     amq-protocol (2.3.2)
     aws-eventstream (1.2.0)
-    aws-partitions (1.664.0)
-    aws-sdk-cloudwatchlogs (1.56.0)
+    aws-partitions (1.666.0)
+    aws-sdk-cloudwatchlogs (1.57.0)
       aws-sdk-core (~> 3, >= 3.165.0)
       aws-sigv4 (~> 1.1)
     aws-sdk-core (3.168.1)
@@ -48,7 +48,7 @@ GEM
     fluent-plugin-datadog (0.14.2)
       fluentd (>= 1, < 2)
       net-http-persistent (~> 4.0.1)
-    fluent-plugin-kubernetes_metadata_filter (3.1.2)
+    fluent-plugin-kubernetes_metadata_filter (3.1.3)
       fluentd (>= 0.14.0, < 1.16)
       kubeclient (>= 4.0.0, < 5.0.0)
       lru_redux
@@ -107,7 +107,7 @@ GEM
       ffi-compiler (>= 1.0, < 2.0)
     http_parser.rb (0.8.0)
     httpclient (2.8.3)
-    jmespath (1.6.1)
+    jmespath (1.6.2)
     json (2.6.2)
     jsonpath (1.1.2)
       multi_json
