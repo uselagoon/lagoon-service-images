@@ -231,6 +231,10 @@ $query = sprintf('{
     environments {
       name
       openshiftProjectName
+      openshift{
+        sshHost
+        sshPort
+      }
     }
   }
 }
@@ -316,28 +320,28 @@ $aliases = array_reduce($environments, function ($carry, $environment) use ($def
   // if we have an active and standby environment configured, then lets provide some quick aliases for them
   if ($environment->name == $productionEnvironment && $standbyProductionEnvironment != NULL) {
     $alias[$productionAlias] = [
-      'remote-host' => "$ssh_host",
+      'remote-host' => "$environment->openshift->sshHost",
       'remote-user' => "$environment->openshiftProjectName",
       'root' => "$drupal_path",
       'backup-dir' => '/tmp',
-      'ssh-options' => "-o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p $ssh_port",
+      'ssh-options' => "-o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p $environment->openshift->sshPort",
     ] + $defaults;
   }
   if ($environment->name == $standbyProductionEnvironment && $standbyProductionEnvironment != NULL) {
     $alias[$standbyAlias] = [
-      'remote-host' => "$ssh_host",
+      'remote-host' => "$environment->openshift->sshHost",
       'remote-user' => "$environment->openshiftProjectName",
       'root' => "$drupal_path",
       'backup-dir' => '/tmp',
-      'ssh-options' => "-o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p $ssh_port",
+      'ssh-options' => "-o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p $environment->openshift->sshPort",
     ] + $defaults;
   }
   $alias[$site_name] = [
-    'remote-host' => "$ssh_host",
+    'remote-host' => "$environment->openshift->sshHost",
     'remote-user' => "$environment->openshiftProjectName",
     'root' => "$drupal_path",
     'backup-dir' => '/tmp',
-    'ssh-options' => "-o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p $ssh_port",
+    'ssh-options' => "-o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p $environment->openshift->sshPort",
   ] + $defaults;
 
   return $carry + $alias;
