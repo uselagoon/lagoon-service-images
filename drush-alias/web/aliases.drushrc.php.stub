@@ -312,6 +312,9 @@ $aliases = array_reduce($environments, function ($carry, $environment) use ($def
   $site_name = str_replace('/','-',$environment->name);
   $site_host = 'localhost';
 
+  $environmentSshHost = !empty($environment->openshift->sshHost) ? $environment->openshift->sshHost : $ssh_host;
+  $environmentSshPort = !empty($environment->openshift->sshPort) ? $environment->openshift->sshPort : $ssh_port;
+
   $alias = [];
   // Drush 9 needs aliases prefixed with a group name in order to be able to convert them correctly
   if (DRUSH_MAJOR_VERSION == "9") {
@@ -320,28 +323,28 @@ $aliases = array_reduce($environments, function ($carry, $environment) use ($def
   // if we have an active and standby environment configured, then lets provide some quick aliases for them
   if ($environment->name == $productionEnvironment && $standbyProductionEnvironment != NULL) {
     $alias[$productionAlias] = [
-      'remote-host' => "$environment->openshift->sshHost",
+      'remote-host' => "$environmentSshHost",
       'remote-user' => "$environment->openshiftProjectName",
       'root' => "$drupal_path",
       'backup-dir' => '/tmp',
-      'ssh-options' => "-o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p $environment->openshift->sshPort",
+      'ssh-options' => "-o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p $environmentSshPort",
     ] + $defaults;
   }
   if ($environment->name == $standbyProductionEnvironment && $standbyProductionEnvironment != NULL) {
     $alias[$standbyAlias] = [
-      'remote-host' => "$environment->openshift->sshHost",
+      'remote-host' => "$environmentSshHost",
       'remote-user' => "$environment->openshiftProjectName",
       'root' => "$drupal_path",
       'backup-dir' => '/tmp',
-      'ssh-options' => "-o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p $environment->openshift->sshPort",
+      'ssh-options' => "-o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p $environmentSshPort",
     ] + $defaults;
   }
   $alias[$site_name] = [
-    'remote-host' => "$environment->openshift->sshHost",
+    'remote-host' => "$environmentSshHost",
     'remote-user' => "$environment->openshiftProjectName",
     'root' => "$drupal_path",
     'backup-dir' => '/tmp',
-    'ssh-options' => "-o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p $environment->openshift->sshPort",
+    'ssh-options' => "-o LogLevel=FATAL -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p $environmentSshPort",
   ] + $defaults;
 
   return $carry + $alias;
