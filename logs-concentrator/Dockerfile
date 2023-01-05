@@ -1,19 +1,18 @@
-FROM fluent/fluentd:v1.14-1
+FROM fluent/fluentd:v1.15-1
 
 LABEL org.opencontainers.image.authors="The Lagoon Authors" maintainer="The Lagoon Authors"
 LABEL org.opencontainers.image.source="https://github.com/uselagoon/lagoon-service-images" repository="https://github.com/uselagoon/lagoon-service-images"
 
 USER root
 
+COPY Gemfile Gemfile.lock /
+
 RUN apk add --no-cache --update --virtual .build-deps \
-      build-base ruby-dev \
-      && gem install elasticsearch -v '< 7.14' \
-      && gem install fluent-plugin-elasticsearch \
-      && gem install fluent-plugin-prometheus \
-      && gem sources --clear-all \
+      build-base ruby-dev ruby-bundler \
+      && BUNDLE_FROZEN=true BUNDLE_SYSTEM=true bundle install \
+      && gem list \
       && apk del .build-deps \
-      && rm -rf /tmp/* /var/tmp/* /usr/lib/ruby/gems/*/cache/*.gem \
-      && apk add --no-cache curl
+      && apk add --no-cache curl jq
 
 COPY fluent.conf /fluentd/etc/
 COPY entrypoint.sh /bin/
