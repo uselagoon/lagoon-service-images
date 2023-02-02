@@ -6,5 +6,10 @@ fi
 
 # prune all images older than 7 days or what is specified in the environment variable
 docker image prune -af --filter "until=${PRUNE_IMAGES_UNTIL:-168h}"
+
+# prune docker build caches coming from buildkit builds
+# prune all docker build cache images older than 7 days or what is specified in the environment variable
+docker builder prune -af --filter "until=${PRUNE_IMAGES_UNTIL:-168h}"
+
 # after old images are pruned, clean up dangling images
 docker image prune -f
