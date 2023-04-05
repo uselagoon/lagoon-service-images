@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
+	"github.com/robfig/cron/v3"
 )
 
 const EnvOverrideHost = "DOCKER_HOST"
@@ -32,74 +33,90 @@ func main() {
 		fmt.Sprintf("Could not connect to %s", dockerHost)
 	}
 
-	// pruneImages(cli)
-	// removeExited(cli)
-	// updateImages(cli)
+	pruneImages(cli)
+	removeExited(cli)
+	updateImages(cli)
 	updatePushImages(cli)
 }
 
 func pruneImages(client *client.Client) {
-	ageFilter := filters.NewArgs()
-	danglingFilter := filters.NewArgs()
-	ageFilter.Add("until", "168")
-	danglingFilter.Add("dangling", "true")
+	c := cron.New()
+	c.AddFunc("22 1 * * *", func() {
+		ageFilter := filters.NewArgs()
+		danglingFilter := filters.NewArgs()
+		ageFilter.Add("until", "168")
+		danglingFilter.Add("dangling", "true")
 
-	// # prune all images older than 7 days or what is specified in the environment variable
-	client.ImagesPrune(context.Background(), ageFilter)
+		// # prune all images older than 7 days or what is specified in the environment variable
+		client.ImagesPrune(context.Background(), ageFilter)
 
-	// # prune all docker build cache images older than 7 days or what is specified in the environment variable
-	client.BuildCachePrune(context.Background(), types.BuildCachePruneOptions{Filters: ageFilter})
+		// # prune all docker build cache images older than 7 days or what is specified in the environment variable
+		client.BuildCachePrune(context.Background(), types.BuildCachePruneOptions{Filters: ageFilter})
 
-	// # after old images are pruned, clean up dangling images
-	client.ImagesPrune(context.Background(), danglingFilter)
+		// # after old images are pruned, clean up dangling images
+		client.ImagesPrune(context.Background(), danglingFilter)
 
-	fmt.Println("Prune complete")
+		fmt.Println("Prune complete")
+	})
+	c.Start()
 }
 
 func removeExited(client *client.Client) {
-	ctx := context.Background()
-	statusFilter := filters.NewArgs()
-	statusFilter.Add("status", "exited")
-	containers, err := client.ContainerList(ctx, types.ContainerListOptions{
-		Filters: statusFilter,
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	// # remove all exited containers
-	for _, container := range containers {
-		_ = client.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{
-			Force:         true,
-			RemoveVolumes: true,
+	c := cron.New()
+	c.AddFunc("22 */4 * * *", func() {
+		ctx := context.Background()
+		statusFilter := filters.NewArgs()
+		statusFilter.Add("status", "exited")
+		containers, err := client.ContainerList(ctx, types.ContainerListOptions{
+			Filters: statusFilter,
 		})
-	}
-
-	fmt.Println("removeExited complete")
-}
-
-func updateImages(client *client.Client) {
-	ctx := context.Background()
-	filters := filters.NewArgs()
-	filters.Add("reference", fmt.Sprintf("%s/*:*", repo))
-	images, err := client.ImageList(ctx, types.ImageListOptions{Filters: filters})
-	if err != nil {
-		panic(err)
-	}
-
-	// # Iterates through all images that have the name of the repository we are interested in in it
-	for i, image := range images {
-		out, err := client.ImagePull(ctx, image.RepoTags[i], types.ImagePullOptions{})
 		if err != nil {
 			panic(err)
 		}
-		defer out.Close()
-		io.Copy(os.Stdout, out)
-	}
-	fmt.Println("Update images complete")
+
+		// # remove all exited containers
+		for _, container := range containers {
+			_ = client.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{
+				Force:         true,
+				RemoveVolumes: true,
+			})
+		}
+
+		fmt.Println("removeExited complete")
+	})
+	c.Start()
 }
 
-// #Todo
+func updateImages(client *client.Client) {
+	c := cron.New()
+	c.AddFunc("*/15 * * * *", func() {
+		ctx := context.Background()
+		filters := filters.NewArgs()
+		filters.Add("reference", fmt.Sprintf("%s/*:*", repo))
+		images, err := client.ImageList(ctx, types.ImageListOptions{Filters: filters})
+		if err != nil {
+			panic(err)
+		}
+
+		var imgRepoTags []string
+		for _, img := range images {
+			imgRepoTags = append(imgRepoTags, img.RepoTags...)
+		}
+
+		// # Iterates through all images that have the name of the repository we are interested in in it
+		for _, image := range imgRepoTags {
+			out, err := client.ImagePull(ctx, image, types.ImagePullOptions{})
+			if err != nil {
+				panic(err)
+			}
+			defer out.Close()
+			io.Copy(os.Stdout, out)
+		}
+		fmt.Println("Update images complete")
+	})
+	c.Start()
+}
+
 func updatePushImages(client *client.Client) {
 	ctx := context.Background()
 	namespace, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
