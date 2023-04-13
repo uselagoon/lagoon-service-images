@@ -33,13 +33,13 @@ func main() {
 	if cli.DaemonHost() != dockerHost {
 		fmt.Sprintf("Could not connect to %s", dockerHost)
 	}
-	var command = fmt.Sprintf("/usr/local/bin/dind /usr/local/bin/dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --insecure-registry=%s --insecure-registry=harbor-harbor-core.harbor.svc.cluster.local:80 --bip=%s --storage-driver=overlay2 --storage-opt=overlay2.override_kernel_check=1 --registry-mirror=%s", REGISTRY, BIP, REGISTRY_MIRROR)
+	var command = fmt.Sprintf("../usr/local/bin/dind ../usr/local/bin/dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --insecure-registry=%s --insecure-registry=harbor-harbor-core.harbor.svc.cluster.local:80 --bip=%s --storage-driver=overlay2 --storage-opt=overlay2.override_kernel_check=1 --registry-mirror=%s", REGISTRY, BIP, REGISTRY_MIRROR)
+	var cmd = exec.Command("sh", "-c", "sh", command)
 	c := cron.New()
 	pruneImages(cli, c)
 	removeExited(cli, c)
 	updateImages(cli, c)
 	c.Start()
-	cmd := exec.Command("sh", "-c", command)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
