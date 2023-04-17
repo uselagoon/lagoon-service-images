@@ -25,6 +25,7 @@ var REGISTRY_MIRROR = getEnv("REGISTRY_MIRROR", "https://imagecache.amazeeio.clo
 func main() {
 	cli, err := client.NewClientWithOpts(
 		client.WithHostFromEnv(),
+		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
 		fmt.Println("Error", err)
@@ -41,23 +42,20 @@ func main() {
 	pruneImages(cli, c)
 	removeExited(cli, c)
 	updateImages(cli, c)
-	fmt.Println("Cronjob start")
 	c.Start()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	fmt.Println("Cronjob run")
 	if err := cmd.Run(); err != nil {
 		fmt.Println("could not run command: ", err)
 	}
 }
 
 func pruneImages(client *client.Client, c *cron.Cron) {
-	c.AddFunc("/5 * * * *", func() {
+	c.AddFunc("22 1 * * *", func() {
 		log.Println("Starting image prune")
-		// c.AddFunc("22 1 * * *", func() {
 		ageFilter := filters.NewArgs()
 		danglingFilter := filters.NewArgs()
-		ageFilter.Add("until", "168")
+		ageFilter.Add("until", "168h")
 		danglingFilter.Add("dangling", "true")
 
 		// # prune all images older than 7 days or what is specified in the environment variable
@@ -68,21 +66,20 @@ func pruneImages(client *client.Client, c *cron.Cron) {
 		// # prune all docker build cache images older than 7 days or what is specified in the environment variable
 		_, buildErr := client.BuildCachePrune(context.Background(), types.BuildCachePruneOptions{Filters: ageFilter})
 		if buildErr != nil {
-			log.Println(err)
+			log.Println(buildErr)
 		}
 		// # after old images are pruned, clean up dangling images
 		_, pruneErr := client.ImagesPrune(context.Background(), danglingFilter)
 		if pruneErr != nil {
-			log.Println(err)
+			log.Println(pruneErr)
 		}
 		log.Println("Prune complete")
 	})
 }
 
 func removeExited(client *client.Client, c *cron.Cron) {
-	c.AddFunc("/6 * * * *", func() {
-		log.Println("Starting remove exited")
-		// c.AddFunc("22 */4 * * *", func() {
+	c.AddFunc("22 */4 * * *", func() {
+		log.Println("Starting removeExited")
 		ctx := context.Background()
 		statusFilter := filters.NewArgs()
 		statusFilter.Add("status", "exited")
@@ -108,9 +105,8 @@ func removeExited(client *client.Client, c *cron.Cron) {
 }
 
 func updateImages(client *client.Client, c *cron.Cron) {
-	c.AddFunc("/8 * * * *", func() {
+	c.AddFunc("*/15 * * * *", func() {
 		log.Println("Starting update images")
-		// c.AddFunc("*/15 * * * *", func() {
 		ctx := context.Background()
 		filters := filters.NewArgs()
 		filters.Add("reference", fmt.Sprintf("%s/*:*", repo))
