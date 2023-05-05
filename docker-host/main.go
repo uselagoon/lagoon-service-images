@@ -159,10 +159,10 @@ func addFilters(repo string) filters.Args {
 	if strings.Contains(repo, "|") {
 		splitRepos := strings.Split(repo, "|")
 		for _, repo := range splitRepos {
-			filters.Add("reference", fmt.Sprintf("%s/*:*", repo))
+			filters.Add("reference", fmt.Sprintf("*%s/*:*", repo))
 		}
 	} else {
-		filters.Add("reference", fmt.Sprintf("%s/*:*", repo))
+		filters.Add("reference", fmt.Sprintf("*%s/*:*", repo))
 	}
 	return filters
 }
