@@ -1,6 +1,6 @@
 FROM uselagoon/commons:latest as commons
 
-FROM docker:20.10.24-dind
+FROM docker:23.0.6-dind
 
 LABEL org.opencontainers.image.authors="The Lagoon Authors" maintainer="The Lagoon Authors"
 LABEL org.opencontainers.image.source="https://github.com/uselagoon/lagoon-service-images" repository="https://github.com/uselagoon/lagoon-service-images"
