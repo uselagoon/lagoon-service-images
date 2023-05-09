@@ -11,7 +11,7 @@ update-gemfile:
 		-v $$PWD/Gemfile.lock:/tmp/Gemfile.lock \
 		-w /tmp \
 		--entrypoint bundle \
-		fluent/fluentd:v1.15-1 \
+		fluent/fluentd:v1.16-1 \
 		lock --update
 
 .PHONY: update-vendor-cache
@@ -24,5 +24,5 @@ update-vendor-cache:
 		-w /tmp \
 		-e BUNDLE_NO_INSTALL=true \
 		--entrypoint bundle \
-		fluent/fluentd:v1.15-1 \
+		fluent/fluentd:v1.16-1 \
 		cache

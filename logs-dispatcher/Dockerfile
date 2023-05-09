@@ -1,4 +1,4 @@
-FROM fluent/fluentd:v1.15-1
+FROM fluent/fluentd:v1.16-1
 
 LABEL org.opencontainers.image.authors="The Lagoon Authors" maintainer="The Lagoon Authors"
 LABEL org.opencontainers.image.source="https://github.com/uselagoon/lagoon-service-images" repository="https://github.com/uselagoon/lagoon-service-images"

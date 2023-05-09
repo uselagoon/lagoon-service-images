@@ -10,5 +10,5 @@ update-gemfile:
 		-v $$PWD/Gemfile.lock:/tmp/Gemfile.lock \
 		-w /tmp \
 		--entrypoint bundle \
-		fluent/fluentd:v1.15-1 \
+		fluent/fluentd:v1.16-1 \
 		lock --update
