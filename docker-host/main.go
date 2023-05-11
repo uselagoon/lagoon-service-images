@@ -19,7 +19,7 @@ import (
 const EnvOverrideHost = "DOCKER_HOST"
 
 var dockerHost = machineryvars.GetEnv("DOCKER_HOST", "docker-host")
-var repositoryToUpdate = machineryvars.GetEnv("REPOSITORY_TO_UPDATE", "uselagoon")
+var repositoriesToUpdate = machineryvars.GetEnv("REPOSITORIES_TO_UPDATE", "uselagoon")
 var REGISTRY = machineryvars.GetEnv("REGISTRY", "docker-registry.default.svc:5000")
 var BIP = machineryvars.GetEnv("BIP", "172.16.0.1/16")
 var REGISTRY_MIRROR = machineryvars.GetEnv("REGISTRY_MIRROR", "")
@@ -35,7 +35,7 @@ func main() {
 		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
-		log.Println("Error", err)
+		log.Fatalf("Error", err)
 	}
 	defer cli.Close()
 
@@ -49,7 +49,7 @@ func main() {
 	var cmd = exec.Command("sh", "-c", command)
 
 	if dockerHost != cli.DaemonHost() {
-		fmt.Sprintf("Could not connect to %s", dockerHost)
+		log.Fatalf("Could not connect to %s", dockerHost)
 	}
 	c := cron.New()
 	pruneImages(cli, c)
@@ -59,7 +59,7 @@ func main() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Println("could not run command: ", err)
+		log.Fatalf("could not run command: ", err)
 	}
 }
 
@@ -123,7 +123,7 @@ func updateImages(client *client.Client, c *cron.Cron) {
 	c.AddFunc(updateImagesSchedule, func() {
 		log.Println("Starting update images")
 		ctx := context.Background()
-		filters := addFilters(repositoryToUpdate)
+		filters := addFilters(repositoriesToUpdate)
 		images, err := client.ImageList(ctx, types.ImageListOptions{Filters: filters})
 		if err != nil {
 			log.Println(err)
@@ -156,13 +156,9 @@ func updateImages(client *client.Client, c *cron.Cron) {
 
 func addFilters(repo string) filters.Args {
 	filters := filters.NewArgs()
-	if strings.Contains(repo, "|") {
-		splitRepos := strings.Split(repo, "|")
-		for _, repo := range splitRepos {
-			filters.Add("reference", fmt.Sprintf("*%s/*:*", repo))
-		}
-	} else {
-		filters.Add("reference", fmt.Sprintf("*%s/*:*", repo))
+	splitRepos := strings.Split(repo, "|")
+	for _, repo := range splitRepos {
+		filters.Add("reference", repo)
 	}
 	return filters
 }

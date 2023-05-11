@@ -35,7 +35,7 @@ RUN apk add --no-cache bash
 
 ENV DOCKER_HOST=docker-host \
     REGISTRY=docker-registry.default.svc:5000 \
-    REPOSITORY_TO_UPDATE=amazeeio \
+    REPOSITORIES_TO_UPDATE=amazeeio \
     BIP=172.16.0.1/16 \
     REGISTRY_MIRROR=https://imagecache.amazeeio.cloud
 
