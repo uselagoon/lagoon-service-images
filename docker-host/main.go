@@ -39,7 +39,7 @@ func main() {
 	}
 	defer cli.Close()
 
-	var command = fmt.Sprintf("/usr/local/bin/dind /usr/local/bin/dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --bip=%s --storage-driver=overlay2 --storage-opt=overlay2.override_kernel_check=1", BIP)
+	var command = fmt.Sprintf("/usr/local/bin/dind /usr/local/bin/dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --bip=%s --storage-driver=overlay2", BIP)
 	if REGISTRY != "" {
 		command = command + fmt.Sprintf(" --insecure-registry=%s", REGISTRY)
 	}
