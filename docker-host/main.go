@@ -22,6 +22,7 @@ var dockerHost = machineryvars.GetEnv("DOCKER_HOST", "docker-host")
 var repositoriesToUpdate = machineryvars.GetEnv("REPOSITORIES_TO_UPDATE", "uselagoon")
 var REGISTRY = machineryvars.GetEnv("REGISTRY", "docker-registry.default.svc:5000")
 var BIP = machineryvars.GetEnv("BIP", "172.16.0.1/16")
+var logLevel = machineryvars.GetEnv("LOG_LEVEL", "info")
 var REGISTRY_MIRROR = machineryvars.GetEnv("REGISTRY_MIRROR", "")
 var pruneImagesSchedule = machineryvars.GetEnv("PRUNE_SCHEDULE", "22 1 * * *")
 var removeExitedSchedule = machineryvars.GetEnv("REMOVE_EXITED_SCHEDULE", "22 */4 * * *")
@@ -39,7 +40,7 @@ func main() {
 	}
 	defer cli.Close()
 
-	var command = fmt.Sprintf("/usr/local/bin/dind /usr/local/bin/dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --bip=%s --storage-driver=overlay2", BIP)
+	var command = fmt.Sprintf("/usr/local/bin/dind /usr/local/bin/dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --bip=%s --storage-driver=overlay2 --tls=false --log-level=%s", BIP, logLevel)
 	if REGISTRY != "" {
 		command = command + fmt.Sprintf(" --insecure-registry=%s", REGISTRY)
 	}
@@ -138,7 +139,7 @@ func updateImages(client *client.Client, c *cron.Cron) {
 		// # Iterates through all images that have the name of the repository we are interested in in it
 		for _, image := range imgRepoTags {
 			out, err := client.ImagePull(ctx, image, types.ImagePullOptions{})
-			log.Println("Image to update", image)
+			log.Println("Checking update for", image)
 
 			if err != nil {
 				log.Println(err)
