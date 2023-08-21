@@ -5,6 +5,6 @@ source "https://rubygems.org"
 git_source(:github) { |repo_name| "https://github.com/#{repo_name}" }
 
 gem "fluent-plugin-elasticsearch", "5.3.0"
-gem "fluent-plugin-opensearch", "1.1.0"
+gem "fluent-plugin-opensearch", "1.1.4"
 gem "fluent-plugin-prometheus", "2.0.3"
 gem "fluentd", "1.16.1"
