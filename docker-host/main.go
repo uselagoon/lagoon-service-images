@@ -125,21 +125,27 @@ func updateImages(client *client.Client, c *cron.Cron) {
 		log.Println("Starting update images")
 		ctx := context.Background()
 		filters := addFilters(repositoriesToUpdate)
-		images, err := client.ImageList(ctx, types.ImageListOptions{Filters: filters})
+		preUpdateImages, err := client.ImageList(ctx, types.ImageListOptions{Filters: filters})
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
-		var imgRepoTags []string
-		for _, img := range images {
-			imgRepoTags = append(imgRepoTags, img.RepoTags...)
+		var preUpdateIDs []string
+		for _, img := range preUpdateImages {
+			preUpdateIDs = append(preUpdateIDs, img.ID)
 		}
 
-		// # Iterates through all images that have the name of the repository we are interested in in it
+		var imgRepoTags []string
+		for _, img := range preUpdateImages {
+			if img.RepoTags != nil {
+				imgRepoTags = append(imgRepoTags, img.RepoTags...)
+			}
+		}
+
+		// # Iterates through all images that have the name of the repository we are interested in it
 		for _, image := range imgRepoTags {
 			out, err := client.ImagePull(ctx, image, types.ImagePullOptions{})
-			log.Println("Checking update for", image)
 
 			if err != nil {
 				log.Println(err)
@@ -151,8 +157,57 @@ func updateImages(client *client.Client, c *cron.Cron) {
 				log.Println(err)
 			}
 		}
-		log.Println("Update images complete")
+
+		postUpdateImages, err := client.ImageList(ctx, types.ImageListOptions{Filters: filters})
+		if err != nil {
+			log.Println(err)
+		}
+
+		var postUpdateIDs []string
+		for _, img := range postUpdateImages {
+			postUpdateIDs = append(postUpdateIDs, img.ID)
+		}
+
+		updatedImages := imgComparison(preUpdateIDs, postUpdateIDs)
+		for _, img := range postUpdateImages {
+			for _, updatedImg := range updatedImages {
+				if img.ID == updatedImg {
+					log.Println(fmt.Sprintf("Updated image %s", img.RepoTags))
+				}
+			}
+		}
+
+		imgPluralize := ""
+		if len(updatedImages) == 1 {
+			imgPluralize = "image"
+		} else {
+			imgPluralize = "images"
+		}
+		log.Println(fmt.Sprintf("Update images complete | %d %s updated", len(updatedImages), imgPluralize))
 	})
+}
+
+func imgComparison(preUpdate, postUpdate []string) []string {
+	var updatedImgs []string
+
+	for i := 0; i < 2; i++ {
+		for _, preUpdateImg := range preUpdate {
+			found := false
+			for _, postUpdateImg := range postUpdate {
+				if preUpdateImg == postUpdateImg {
+					found = true
+					break
+				}
+			}
+			if !found {
+				updatedImgs = append(updatedImgs, preUpdateImg)
+			}
+		}
+		if i == 0 {
+			preUpdate, postUpdate = postUpdate, preUpdate
+		}
+	}
+	return updatedImgs
 }
 
 func addFilters(repo string) filters.Args {
