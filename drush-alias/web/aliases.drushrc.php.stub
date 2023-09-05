@@ -253,7 +253,7 @@ curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
 curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
 curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
 curl_setopt($curl, CURLOPT_POSTREDIR, CURL_REDIR_POST_ALL);
-curl_setopt($curl, CURLOPT_HTTPHEADER, ['Content-Type: application/json', "Authorization: Bearer $jwt_token"]);
+curl_setopt($curl, CURLOPT_HTTPHEADER, ['X-Lagoon-Service: drush-alias', 'Content-Type: application/json', "Authorization: Bearer $jwt_token"]);
 curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode(array(
   'query' => $query,
 )));
