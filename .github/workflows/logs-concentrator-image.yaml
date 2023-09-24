@@ -23,14 +23,14 @@ jobs:
     steps:
       -
         name: Checkout PR
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
+        uses: actions/checkout@v4
         if: ${{ github.event_name == 'pull_request' }}
         with:
           fetch-depth: "0"
           ref: ${{ github.event.pull_request.head.sha }}
       -
         name: Checkout Branch or Tag
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
+        uses: actions/checkout@v4
         if: ${{ github.event_name != 'pull_request' }}
         with:
           fetch-depth: "0"
