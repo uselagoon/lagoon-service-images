@@ -8,7 +8,7 @@ USER root
 COPY Gemfile Gemfile.lock /
 
 RUN apk add --no-cache --update --virtual .build-deps \
-      build-base ruby-dev ruby-bundler \
+      build-base ruby-dev ruby-bundler linux-headers \
       && BUNDLE_FROZEN=true BUNDLE_SYSTEM=true bundle install \
       && gem list \
       && apk del .build-deps \
