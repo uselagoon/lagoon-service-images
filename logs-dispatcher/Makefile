@@ -1,6 +1,6 @@
 .PHONY: build
 build:
-	docker build .
+	docker build . -t lagoon/logs-dispatcher:latest
 
 .PHONY: update-gemfile
 update-gemfile:

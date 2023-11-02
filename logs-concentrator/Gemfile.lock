@@ -2,26 +2,28 @@ GEM
   remote: https://rubygems.org/
   specs:
     aws-eventstream (1.2.0)
-    aws-partitions (1.752.0)
-    aws-sdk-core (3.171.1)
+    aws-partitions (1.844.0)
+    aws-sdk-core (3.186.0)
       aws-eventstream (~> 1, >= 1.0.2)
       aws-partitions (~> 1, >= 1.651.0)
       aws-sigv4 (~> 1.5)
       jmespath (~> 1, >= 1.6.1)
-    aws-sigv4 (1.5.2)
+    aws-sigv4 (1.6.1)
       aws-eventstream (~> 1, >= 1.0.2)
+    base64 (0.1.1)
     concurrent-ruby (1.2.2)
     cool.io (1.8.0)
-    elastic-transport (8.2.1)
+    elastic-transport (8.3.0)
       faraday (< 3)
       multi_json
-    elasticsearch (8.7.0)
+    elasticsearch (8.10.0)
       elastic-transport (~> 8)
-      elasticsearch-api (= 8.7.0)
-    elasticsearch-api (8.7.0)
+      elasticsearch-api (= 8.10.0)
+    elasticsearch-api (8.10.0)
       multi_json
-    excon (0.99.0)
-    faraday (2.7.10)
+    excon (0.104.0)
+    faraday (2.7.11)
+      base64
       faraday-net_http (>= 2.0, < 3.1)
       ruby2_keywords (>= 0.0.4)
     faraday-excon (2.1.0)
@@ -64,15 +66,10 @@ GEM
     jmespath (1.6.2)
     msgpack (1.7.2)
     multi_json (1.15.0)
-    opensearch-api (2.2.0)
-      multi_json
-    opensearch-ruby (2.1.0)
-      opensearch-api (~> 2.1)
-      opensearch-transport (~> 2.0)
-    opensearch-transport (2.1.0)
+    opensearch-ruby (3.0.1)
       faraday (>= 1.0, < 3)
-      multi_json
-    prometheus-client (4.2.1)
+      multi_json (>= 1.0)
+    prometheus-client (4.2.2)
     ruby2_keywords (0.0.5)
     serverengine (2.3.2)
       sigdump (~> 0.2.2)
@@ -96,4 +93,4 @@ DEPENDENCIES
   fluentd (= 1.16.2)
 
 BUNDLED WITH
-   2.4.12
+   2.4.17

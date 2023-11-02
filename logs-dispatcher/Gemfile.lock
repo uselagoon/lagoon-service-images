@@ -5,11 +5,11 @@ GEM
       public_suffix (>= 2.0.2, < 6.0)
     amq-protocol (2.3.2)
     aws-eventstream (1.2.0)
-    aws-partitions (1.843.0)
+    aws-partitions (1.844.0)
     aws-sdk-cloudwatchlogs (1.71.0)
       aws-sdk-core (~> 3, >= 3.184.0)
       aws-sigv4 (~> 1.1)
-    aws-sdk-core (3.185.2)
+    aws-sdk-core (3.186.0)
       aws-eventstream (~> 1, >= 1.0.2)
       aws-partitions (~> 1, >= 1.651.0)
       aws-sigv4 (~> 1.5)
@@ -172,4 +172,4 @@ DEPENDENCIES
   fluentd (= 1.16.2)
 
 BUNDLED WITH
-   2.4.19
+   2.4.17
