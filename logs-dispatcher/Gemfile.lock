@@ -79,9 +79,9 @@ GEM
       fluentd (>= 0.12.0)
       httpclient
       json
-    fluent-plugin-sumologic_output (1.8.0)
-      fluentd (>= 0.14.12)
-      httpclient (~> 2.8.0)
+    fluent-plugin-sumologic_output (1.9.0)
+      fluentd
+      httpclient
     fluentd (1.16.3)
       bundler
       cool.io (>= 1.4.5, < 2.0.0)
@@ -142,7 +142,7 @@ GEM
     syslog_protocol (0.9.2)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
-    tzinfo-data (1.2023.4)
+    tzinfo-data (1.2024.1)
       tzinfo (>= 1.0.0)
     unf (0.1.4)
       unf_ext
@@ -168,7 +168,7 @@ DEPENDENCIES
   fluent-plugin-route (= 1.0.0)
   fluent-plugin-s3 (= 1.7.2)
   fluent-plugin-splunk-enterprise (= 0.10.2)
-  fluent-plugin-sumologic_output (= 1.8.0)
+  fluent-plugin-sumologic_output (= 1.9.0)
   fluentd (= 1.16.3)
 
 BUNDLED WITH
