@@ -50,7 +50,7 @@ GEM
     fluent-plugin-prometheus (2.1.0)
       fluentd (>= 1.9.1, < 2)
       prometheus-client (>= 2.1.0)
-    fluentd (1.16.2)
+    fluentd (1.16.3)
       bundler
       cool.io (>= 1.4.5, < 2.0.0)
       http_parser.rb (>= 0.5.1, < 0.9.0)
@@ -90,7 +90,7 @@ DEPENDENCIES
   fluent-plugin-elasticsearch (= 5.3.0)
   fluent-plugin-opensearch (= 1.1.4)
   fluent-plugin-prometheus (= 2.1.0)
-  fluentd (= 1.16.2)
+  fluentd (= 1.16.3)
 
 BUNDLED WITH
    2.4.17
