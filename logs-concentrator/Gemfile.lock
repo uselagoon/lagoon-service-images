@@ -10,7 +10,7 @@ GEM
       jmespath (~> 1, >= 1.6.1)
     aws-sigv4 (1.6.1)
       aws-eventstream (~> 1, >= 1.0.2)
-    concurrent-ruby (1.2.2)
+    concurrent-ruby (1.2.3)
     cool.io (1.8.0)
     elastic-transport (8.3.0)
       faraday (< 3)
@@ -48,7 +48,7 @@ GEM
     fluent-plugin-prometheus (2.1.0)
       fluentd (>= 1.9.1, < 2)
       prometheus-client (>= 2.1.0)
-    fluentd (1.16.3)
+    fluentd (1.16.5)
       bundler
       cool.io (>= 1.4.5, < 2.0.0)
       http_parser.rb (>= 0.5.1, < 0.9.0)
@@ -90,7 +90,7 @@ DEPENDENCIES
   fluent-plugin-elasticsearch (= 5.4.3)
   fluent-plugin-opensearch (= 1.1.4)
   fluent-plugin-prometheus (= 2.1.0)
-  fluentd (= 1.16.3)
+  fluentd (= 1.16.5)
 
 BUNDLED WITH
    2.4.17
