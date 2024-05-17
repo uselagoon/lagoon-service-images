@@ -45,7 +45,7 @@ GEM
     fluent-plugin-cloudwatch-logs (0.14.3)
       aws-sdk-cloudwatchlogs (~> 1.0)
       fluentd (>= 1.8.0)
-    fluent-plugin-datadog (0.14.2)
+    fluent-plugin-datadog (0.14.3)
       fluentd (>= 1, < 2)
       net-http-persistent (~> 4.0.1)
     fluent-plugin-kubernetes_metadata_filter (3.4.0)
@@ -152,11 +152,12 @@ GEM
     yajl-ruby (1.4.3)
 
 PLATFORMS
+  x86_64-linux
   x86_64-linux-musl
 
 DEPENDENCIES
   fluent-plugin-cloudwatch-logs (= 0.14.3)
-  fluent-plugin-datadog (= 0.14.2)
+  fluent-plugin-datadog (= 0.14.3)
   fluent-plugin-kubernetes_metadata_filter (= 3.4.0)
   fluent-plugin-multi-format-parser (= 1.1.0)
   fluent-plugin-newrelic (= 1.2.3)
