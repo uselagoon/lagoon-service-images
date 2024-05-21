@@ -1,4 +1,4 @@
-FROM drupaldocker/drush:8-alpine
+FROM drupaldocker/drush:9-alpine
 
 COPY local-dev/cli_id_rsa /root/.ssh/id_rsa
 
