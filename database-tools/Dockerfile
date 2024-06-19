@@ -1,4 +1,4 @@
-FROM alpine:3.18.4
+FROM alpine:3.19.1
 
 LABEL org.opencontainers.image.authors="The Lagoon Authors" maintainer="The Lagoon Authors"
 LABEL org.opencontainers.image.source="https://github.com/uselagoon/lagoon-service-images" repository="https://github.com/uselagoon/lagoon-service-images"
@@ -9,6 +9,6 @@ RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.17/community' >> /etc/apk/repo
 	grep \
 	sed \
 	mongodb-tools=4.2.14-r17 \
-	mysql-client \
+	mysql-client=10.11.6-r0 \
 	postgresql-client \
 	&& rm -rf /var/cache/apk/*
