@@ -11,9 +11,7 @@ IMAGE_INSPECT_OUTPUT_FILE="${TMP_DIR}/${IMAGE_NAME}.image-inspect.json.gz"
 set +x
 echo "Running image inspect on: ${IMAGE_FULL}"
 
-# DOCKER_HOST=docker-host.lagoon.svc docker pull ${IMAGE_FULL}
-
-DOCKER_HOST=docker-host.lagoon.svc skopeo inspect --retry-times 5 docker://${IMAGE_FULL} --tls-verify=false | gzip > ${IMAGE_INSPECT_OUTPUT_FILE}
+skopeo inspect --retry-times 5 docker://${IMAGE_FULL} --tls-verify=false | gzip > ${IMAGE_INSPECT_OUTPUT_FILE}
 
 processImageInspect() {
   echo "Successfully generated image inspection data for ${IMAGE_FULL}"
@@ -49,7 +47,7 @@ processImageInspect
 echo "Running sbom scan using trivy"
 echo "Image being scanned: ${IMAGE_FULL}"
 
-DOCKER_HOST=docker-host.lagoon.svc trivy image ${IMAGE_FULL} --format ${SBOM_OUTPUT} | gzip > ${SBOM_OUTPUT_FILE}
+trivy image ${IMAGE_FULL} --format ${SBOM_OUTPUT} | gzip > ${SBOM_OUTPUT_FILE}
 
 FILESIZE=$(stat -c%s "$SBOM_OUTPUT_FILE")
 echo "Size of ${SBOM_OUTPUT_FILE} = $FILESIZE bytes."
