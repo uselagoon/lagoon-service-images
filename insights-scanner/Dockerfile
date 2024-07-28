@@ -1,7 +1,8 @@
 ARG UPSTREAM_REPO
 ARG UPSTREAM_TAG
 ARG GO_VER
-FROM ${UPSTREAM_REPO:-uselagoon}/commons:${UPSTREAM_TAG:-latest} as commons
+FROM ${UPSTREAM_REPO:-uselagoon}/commons:${UPSTREAM_TAG:-latest} AS commons
+FROM aquasec/trivy:0.52.2 AS trivy
 
 FROM docker:20.10.24
 
@@ -28,18 +29,16 @@ ENV TMPDIR=/tmp \
     BASH_ENV=/home/.bashrc
 
 # Defining Versions
-ENV KUBECTL_VERSION=v1.27.6
+ENV KUBECTL_VERSION=v1.30.3
 
 RUN apk add -U --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing aufs-util \
-    && apk upgrade --no-cache openssh openssh-keygen openssh-client-common openssh-client-default \
-    && apk add --no-cache openssl curl parallel bash git py-pip skopeo \
-    && git config --global user.email "lagoon@lagoon.io" && git config --global user.name lagoon \
-    && pip install shyaml \
-    && curl -Lo /usr/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl \
+    && apk add --no-cache curl bash skopeo
+
+RUN architecture=$(case $(uname -m) in x86_64 | amd64) echo "amd64" ;; aarch64 | arm64 | armv8) echo "arm64" ;; *) echo "amd64" ;; esac) \
+    && curl -Lo /usr/bin/kubectl https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/${architecture}/kubectl \
     && chmod +x /usr/bin/kubectl
 
-RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.52.2
-
+COPY --from=trivy /usr/local/bin/trivy /usr/local/bin/trivy
 
 WORKDIR /app
 
@@ -49,6 +48,9 @@ RUN chmod +x /app/run.sh && /bin/fix-permissions /app/run.sh
 
 # We'll set DOCKER_HOST to the lagoon default, but with the assumption that it's overridable at runtime by insights-handler
 ENV DOCKER_HOST=docker-host.lagoon.svc
+
+# bring in entrypoint to kill startup if the appropriate DOCLER_HOST isn't found
+COPY ./dockerhost-entrypoint.sh /lagoon/entrypoints/100-docker-entrypoint.sh
 
 ENTRYPOINT ["/sbin/tini", "--", "/lagoon/entrypoints.sh"]
 CMD ["/app/run.sh"]
