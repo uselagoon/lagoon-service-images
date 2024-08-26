@@ -1,6 +1,6 @@
 FROM golang:1.18-alpine3.17 as builder
 
-WORKDIR /docker-host
+WORKDIR /build
 
 COPY main.go .
 COPY go.mod .
@@ -21,7 +21,7 @@ COPY --from=commons /bin/fix-permissions /bin/ep /bin/docker-sleep /bin/
 COPY --from=commons /sbin/tini /sbin/
 COPY --from=commons /home /home
 
-COPY --from=builder /docker-host /docker-host
+COPY --from=builder /build/docker-host /docker-host
 
 ENV TMPDIR=/tmp \
     TMP=/tmp \
@@ -43,4 +43,4 @@ RUN fix-permissions /home
 
 ENTRYPOINT ["/sbin/tini", "--", "/lagoon/entrypoints.sh"]
 
-CMD ["sh", "-c", "sh", "/docker-host"]
+CMD ["sh", "-c", "/docker-host"]
