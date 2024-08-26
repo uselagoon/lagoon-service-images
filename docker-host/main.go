@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
-	"strings"
+	"os/exec"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
@@ -18,7 +17,9 @@ const EnvOverrideHost = "DOCKER_HOST"
 
 var dockerHost = os.Getenv("DOCKER_HOST")
 var repo = getEnv("REPOSITORY_TO_UPDATE", "amazeeio")
-var registryHost = getEnv("REGISTRY", "docker-registry.default.svc:5000")
+var REGISTRY = getEnv("REGISTRY", "docker-registry.default.svc:5000")
+var BIP = getEnv("BIP", "172.16.0.1/16")
+var REGISTRY_MIRROR = getEnv("REGISTRY_MIRROR", "https://imagecache.amazeeio.cloud")
 
 func main() {
 	cli, err := client.NewClientWithOpts(
@@ -32,15 +33,21 @@ func main() {
 	if cli.DaemonHost() != dockerHost {
 		fmt.Sprintf("Could not connect to %s", dockerHost)
 	}
-
-	pruneImages(cli)
-	removeExited(cli)
-	updateImages(cli)
-	updatePushImages(cli)
+	var command = fmt.Sprintf("/usr/local/bin/dind /usr/local/bin/dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --insecure-registry=%s --insecure-registry=harbor-harbor-core.harbor.svc.cluster.local:80 --bip=%s --storage-driver=overlay2 --storage-opt=overlay2.override_kernel_check=1 --registry-mirror=%s", REGISTRY, BIP, REGISTRY_MIRROR)
+	c := cron.New()
+	pruneImages(cli, c)
+	removeExited(cli, c)
+	updateImages(cli, c)
+	c.Start()
+	cmd := exec.Command("sh", "-c", command)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Println("could not run command: ", err)
+	}
 }
 
-func pruneImages(client *client.Client) {
-	c := cron.New()
+func pruneImages(client *client.Client, c *cron.Cron) {
 	c.AddFunc("22 1 * * *", func() {
 		ageFilter := filters.NewArgs()
 		danglingFilter := filters.NewArgs()
@@ -58,11 +65,9 @@ func pruneImages(client *client.Client) {
 
 		fmt.Println("Prune complete")
 	})
-	c.Start()
 }
 
-func removeExited(client *client.Client) {
-	c := cron.New()
+func removeExited(client *client.Client, c *cron.Cron) {
 	c.AddFunc("22 */4 * * *", func() {
 		ctx := context.Background()
 		statusFilter := filters.NewArgs()
@@ -84,11 +89,9 @@ func removeExited(client *client.Client) {
 
 		fmt.Println("removeExited complete")
 	})
-	c.Start()
 }
 
-func updateImages(client *client.Client) {
-	c := cron.New()
+func updateImages(client *client.Client, c *cron.Cron) {
 	c.AddFunc("*/15 * * * *", func() {
 		ctx := context.Background()
 		filters := filters.NewArgs()
@@ -114,64 +117,63 @@ func updateImages(client *client.Client) {
 		}
 		fmt.Println("Update images complete")
 	})
-	c.Start()
 }
 
-func updatePushImages(client *client.Client) {
-	ctx := context.Background()
-	namespace, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-	if err != nil {
-		fmt.Println(fmt.Sprintf("Task failed to read the token, error was: %v", err))
-		os.Exit(1)
-	}
-	token, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
-	if err != nil {
-		fmt.Println(fmt.Sprintf("Task failed to read the token, error was: %v", err))
-		os.Exit(1)
-	}
-	client.RegistryLogin(ctx, types.AuthConfig{
-		Username:      "serviceaccount",
-		Password:      "",
-		RegistryToken: fmt.Sprintf("%s:%s", registryHost, token),
-	})
+// func updatePushImages(client *client.Client) {
+// 	ctx := context.Background()
+// 	namespace, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+// 	if err != nil {
+// 		fmt.Println(fmt.Sprintf("Task failed to read the token, error was: %v", err))
+// 		os.Exit(1)
+// 	}
+// 	token, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+// 	if err != nil {
+// 		fmt.Println(fmt.Sprintf("Task failed to read the token, error was: %v", err))
+// 		os.Exit(1)
+// 	}
+// 	client.RegistryLogin(ctx, types.AuthConfig{
+// 		Username:      "serviceaccount",
+// 		Password:      "",
+// 		RegistryToken: fmt.Sprintf("%s:%s", registryHost, token),
+// 	})
 
-	filters := filters.NewArgs()
-	filters.Add("reference", fmt.Sprintf("%s/*:*", repo))
-	images, err := client.ImageList(ctx, types.ImageListOptions{Filters: filters})
-	if err != nil {
-		panic(err)
-	}
+// 	filters := filters.NewArgs()
+// 	filters.Add("reference", fmt.Sprintf("%s/*:*", repo))
+// 	images, err := client.ImageList(ctx, types.ImageListOptions{Filters: filters})
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	var imgRepoTags []string
-	for _, img := range images {
-		imgRepoTags = append(imgRepoTags, img.RepoTags...)
-	}
+// 	var imgRepoTags []string
+// 	for _, img := range images {
+// 		imgRepoTags = append(imgRepoTags, img.RepoTags...)
+// 	}
 
-	imageNoRespository := ""
+// 	imageNoRespository := ""
 
-	for _, fullImage := range imgRepoTags {
-		image := strings.Split(fullImage, "/")
+// 	for _, fullImage := range imgRepoTags {
+// 		image := strings.Split(fullImage, "/")
 
-		if len(image) == 3 {
-			imageNoRespository = image[2]
-		} else {
-			imageNoRespository = image[1]
-		}
+// 		if len(image) == 3 {
+// 			imageNoRespository = image[2]
+// 		} else {
+// 			imageNoRespository = image[1]
+// 		}
 
-		// # pull newest version of found image
-		out, err := client.ImagePull(ctx, fullImage, types.ImagePullOptions{})
-		if err != nil {
-			panic(err)
-		}
-		defer out.Close()
+// 		// # pull newest version of found image
+// 		out, err := client.ImagePull(ctx, fullImage, types.ImagePullOptions{})
+// 		if err != nil {
+// 			panic(err)
+// 		}
+// 		defer out.Close()
 
-		// # Tag the image with the openshift registry name and the openshift project this container is running
-		client.ImageTag(ctx, fullImage, fmt.Sprintf("%s/%s/%s", registryHost, namespace, imageNoRespository))
+// 		// # Tag the image with the openshift registry name and the openshift project this container is running
+// 		client.ImageTag(ctx, fullImage, fmt.Sprintf("%s/%s/%s", registryHost, namespace, imageNoRespository))
 
-		// # Push to the openshift registry
-		client.ImagePush(ctx, fmt.Sprintf("%s/%s/%s", registryHost, namespace, imageNoRespository), types.ImagePushOptions{})
-	}
-}
+// 		// # Push to the openshift registry
+// 		client.ImagePush(ctx, fmt.Sprintf("%s/%s/%s", registryHost, namespace, imageNoRespository), types.ImagePushOptions{})
+// 	}
+// }
 
 func getEnv(key, defaultValue string) string {
 	value := os.Getenv(key)
