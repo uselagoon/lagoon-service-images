@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
@@ -18,10 +19,10 @@ import (
 const EnvOverrideHost = "DOCKER_HOST"
 
 var dockerHost = machineryvars.GetEnv("DOCKER_HOST", "docker-host")
-var repo = machineryvars.GetEnv("REPOSITORY_TO_UPDATE", "amazeeio")
+var repositoryToUpdate = machineryvars.GetEnv("REPOSITORY_TO_UPDATE", "uselagoon")
 var REGISTRY = machineryvars.GetEnv("REGISTRY", "docker-registry.default.svc:5000")
 var BIP = machineryvars.GetEnv("BIP", "172.16.0.1/16")
-var REGISTRY_MIRROR = machineryvars.GetEnv("REGISTRY_MIRROR", "https://imagecache.amazeeio.cloud")
+var REGISTRY_MIRROR = machineryvars.GetEnv("REGISTRY_MIRROR", "")
 var pruneImagesSchedule = machineryvars.GetEnv("PRUNE_SCHEDULE", "22 1 * * *")
 var removeExitedSchedule = machineryvars.GetEnv("REMOVE_EXITED_SCHEDULE", "22 */4 * * *")
 var updateImagesSchedule = machineryvars.GetEnv("UPDATE_IMAGES_SCHEDULE", "*/15 * * * *")
@@ -34,11 +35,17 @@ func main() {
 		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
-		fmt.Println("Error", err)
+		log.Println("Error", err)
 	}
 	defer cli.Close()
 
-	var command = fmt.Sprintf("/usr/local/bin/dind /usr/local/bin/dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --insecure-registry=%s --insecure-registry=harbor-harbor-core.harbor.svc.cluster.local:80 --bip=%s --storage-driver=overlay2 --storage-opt=overlay2.override_kernel_check=1 --registry-mirror=%s", REGISTRY, BIP, REGISTRY_MIRROR)
+	var command = fmt.Sprintf("/usr/local/bin/dind /usr/local/bin/dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --bip=%s --storage-driver=overlay2 --storage-opt=overlay2.override_kernel_check=1", BIP)
+	if REGISTRY != "" {
+		command = command + fmt.Sprintf(" --insecure-registry=%s", REGISTRY)
+	}
+	if REGISTRY_MIRROR != "" {
+		command = command + fmt.Sprintf(" --registry-mirror=%s", REGISTRY_MIRROR)
+	}
 	var cmd = exec.Command("sh", "-c", command)
 
 	if dockerHost != cli.DaemonHost() {
@@ -68,6 +75,7 @@ func pruneImages(client *client.Client, c *cron.Cron) {
 		_, err := client.ImagesPrune(context.Background(), ageFilter)
 		if err != nil {
 			log.Println(err)
+			return
 		}
 		// # prune all docker build cache images older than 7 days or what is specified in the environment variable
 		_, buildErr := client.BuildCachePrune(context.Background(), types.BuildCachePruneOptions{Filters: ageFilter})
@@ -94,6 +102,7 @@ func removeExited(client *client.Client, c *cron.Cron) {
 		})
 		if err != nil {
 			log.Println(err)
+			return
 		}
 
 		// # remove all exited containers
@@ -114,11 +123,11 @@ func updateImages(client *client.Client, c *cron.Cron) {
 	c.AddFunc(updateImagesSchedule, func() {
 		log.Println("Starting update images")
 		ctx := context.Background()
-		filters := filters.NewArgs()
-		filters.Add("reference", fmt.Sprintf("%s/*:*", repo))
+		filters := addFilters(repositoryToUpdate)
 		images, err := client.ImageList(ctx, types.ImageListOptions{Filters: filters})
 		if err != nil {
 			log.Println(err)
+			return
 		}
 
 		var imgRepoTags []string
@@ -129,12 +138,31 @@ func updateImages(client *client.Client, c *cron.Cron) {
 		// # Iterates through all images that have the name of the repository we are interested in in it
 		for _, image := range imgRepoTags {
 			out, err := client.ImagePull(ctx, image, types.ImagePullOptions{})
+			log.Println("Image to update", image)
+
 			if err != nil {
 				log.Println(err)
+				continue
 			}
 			defer out.Close()
-			io.Copy(os.Stdout, out)
+			_, error := io.Copy(os.Stdout, out)
+			if error != nil {
+				log.Println(err)
+			}
 		}
 		log.Println("Update images complete")
 	})
+}
+
+func addFilters(repo string) filters.Args {
+	filters := filters.NewArgs()
+	if strings.Contains(repo, "|") {
+		splitRepos := strings.Split(repo, "|")
+		for _, repo := range splitRepos {
+			filters.Add("reference", fmt.Sprintf("%s/*:*", repo))
+		}
+	} else {
+		filters.Add("reference", fmt.Sprintf("%s/*:*", repo))
+	}
+	return filters
 }
