@@ -12,15 +12,21 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/robfig/cron/v3"
+	machineryvars "github.com/uselagoon/machinery/utils/variables"
 )
 
 const EnvOverrideHost = "DOCKER_HOST"
 
-var dockerHost = getEnv("DOCKER_HOST", "docker-host")
-var repo = getEnv("REPOSITORY_TO_UPDATE", "amazeeio")
-var REGISTRY = getEnv("REGISTRY", "docker-registry.default.svc:5000")
-var BIP = getEnv("BIP", "172.16.0.1/16")
-var REGISTRY_MIRROR = getEnv("REGISTRY_MIRROR", "https://imagecache.amazeeio.cloud")
+var dockerHost = machineryvars.GetEnv("DOCKER_HOST", "docker-host")
+var repo = machineryvars.GetEnv("REPOSITORY_TO_UPDATE", "amazeeio")
+var REGISTRY = machineryvars.GetEnv("REGISTRY", "docker-registry.default.svc:5000")
+var BIP = machineryvars.GetEnv("BIP", "172.16.0.1/16")
+var REGISTRY_MIRROR = machineryvars.GetEnv("REGISTRY_MIRROR", "https://imagecache.amazeeio.cloud")
+var pruneImagesSchedule = machineryvars.GetEnv("PRUNE_SCHEDULE", "22 1 * * *")
+var removeExitedSchedule = machineryvars.GetEnv("REMOVE_EXITED_SCHEDULE", "22 */4 * * *")
+var updateImagesSchedule = machineryvars.GetEnv("UPDATE_IMAGES_SCHEDULE", "*/15 * * * *")
+var pruneImagesUntil = machineryvars.GetEnv("PRUNE_IMAGES_UNTIL", "168h")
+var danglingFilter = machineryvars.GetEnv("DANGLING_FILTER", "true")
 
 func main() {
 	cli, err := client.NewClientWithOpts(
@@ -51,12 +57,12 @@ func main() {
 }
 
 func pruneImages(client *client.Client, c *cron.Cron) {
-	c.AddFunc("22 1 * * *", func() {
+	c.AddFunc(pruneImagesSchedule, func() {
 		log.Println("Starting image prune")
 		ageFilter := filters.NewArgs()
-		danglingFilter := filters.NewArgs()
-		ageFilter.Add("until", "168h")
-		danglingFilter.Add("dangling", "true")
+		pruneDanglingFilter := filters.NewArgs()
+		ageFilter.Add("until", pruneImagesUntil)
+		pruneDanglingFilter.Add("dangling", danglingFilter)
 
 		// # prune all images older than 7 days or what is specified in the environment variable
 		_, err := client.ImagesPrune(context.Background(), ageFilter)
@@ -69,7 +75,7 @@ func pruneImages(client *client.Client, c *cron.Cron) {
 			log.Println(buildErr)
 		}
 		// # after old images are pruned, clean up dangling images
-		_, pruneErr := client.ImagesPrune(context.Background(), danglingFilter)
+		_, pruneErr := client.ImagesPrune(context.Background(), pruneDanglingFilter)
 		if pruneErr != nil {
 			log.Println(pruneErr)
 		}
@@ -78,7 +84,7 @@ func pruneImages(client *client.Client, c *cron.Cron) {
 }
 
 func removeExited(client *client.Client, c *cron.Cron) {
-	c.AddFunc("22 */4 * * *", func() {
+	c.AddFunc(removeExitedSchedule, func() {
 		log.Println("Starting removeExited")
 		ctx := context.Background()
 		statusFilter := filters.NewArgs()
@@ -105,7 +111,7 @@ func removeExited(client *client.Client, c *cron.Cron) {
 }
 
 func updateImages(client *client.Client, c *cron.Cron) {
-	c.AddFunc("*/15 * * * *", func() {
+	c.AddFunc(updateImagesSchedule, func() {
 		log.Println("Starting update images")
 		ctx := context.Background()
 		filters := filters.NewArgs()
@@ -131,12 +137,4 @@ func updateImages(client *client.Client, c *cron.Cron) {
 		}
 		log.Println("Update images complete")
 	})
-}
-
-func getEnv(key, defaultValue string) string {
-	value := os.Getenv(key)
-	if len(value) == 0 {
-		return defaultValue
-	}
-	return value
 }
