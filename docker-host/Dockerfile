@@ -1,5 +1,16 @@
-FROM uselagoon/commons:latest as commons
 
+FROM golang:1.18-alpine3.17 as builder
+
+WORKDIR /docker-host
+
+COPY main.go .
+COPY go.mod .
+COPY go.sum .
+
+# compile
+RUN CGO_ENABLED=0  GOOS=linux GOARCH=amd64 go build docker-host .
+
+FROM uselagoon/commons:latest as commons
 FROM docker:27.0.3-dind
 
 LABEL org.opencontainers.image.authors="The Lagoon Authors" maintainer="The Lagoon Authors"
@@ -10,6 +21,8 @@ COPY --from=commons /lagoon /lagoon
 COPY --from=commons /bin/fix-permissions /bin/ep /bin/docker-sleep /bin/
 COPY --from=commons /sbin/tini /sbin/
 COPY --from=commons /home /home
+
+COPY --from=builder /docker-host /docker-host
 
 ENV TMPDIR=/tmp \
     TMP=/tmp \
@@ -29,11 +42,6 @@ ENV DOCKER_HOST=docker-host \
 
 RUN fix-permissions /home
 
-COPY update-push-images.sh /update-push-images.sh
-COPY update-images.sh /update-images.sh
-COPY prune-images.sh /prune-images.sh
-COPY remove-exited.sh /remove-exited.sh
-
 ENTRYPOINT ["/sbin/tini", "--", "/lagoon/entrypoints.sh"]
 
-CMD ["sh", "-c", "sh /usr/local/bin/dind /usr/local/bin/dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --insecure-registry=${REGISTRY} --insecure-registry=harbor-harbor-core.harbor.svc.cluster.local:80 --bip=${BIP} --storage-driver=overlay2 --registry-mirror=${REGISTRY_MIRROR}"]
+CMD ["sh", "-c", "sh /usr/local/bin/dind /usr/local/bin/dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --insecure-registry=${REGISTRY} --insecure-registry=harbor-harbor-core.harbor.svc.cluster.local:80 --bip=${BIP} --storage-driver=overlay2 --storage-opt=overlay2.override_kernel_check=1 --registry-mirror=${REGISTRY_MIRROR}, /docker-host"]
