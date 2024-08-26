@@ -36,7 +36,7 @@ func main() {
 		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
-		log.Fatalf("Error", err)
+		log.Fatalf("Error: %s", err)
 	}
 	defer cli.Close()
 
@@ -60,7 +60,7 @@ func main() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("could not run command: ", err)
+		log.Fatalf("could not run command: %s", err)
 	}
 }
 
