@@ -145,7 +145,7 @@ func updateImages(client *client.Client, c *cron.Cron) {
 				continue
 			}
 			defer out.Close()
-			_, error := io.Copy(os.Stdout, out)
+			_, error := io.Copy(io.Discard, out)
 			if error != nil {
 				log.Println(err)
 			}
