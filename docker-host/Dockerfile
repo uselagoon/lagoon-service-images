@@ -10,7 +10,8 @@ COPY go.sum .
 RUN CGO_ENABLED=0  GOOS=linux GOARCH=amd64 go build docker-host .
 
 FROM uselagoon/commons:latest as commons
-FROM docker:24.0.2-dind
+
+FROM docker:27.0.3-dind
 
 LABEL org.opencontainers.image.authors="The Lagoon Authors" maintainer="The Lagoon Authors"
 LABEL org.opencontainers.image.source="https://github.com/uselagoon/lagoon-service-images" repository="https://github.com/uselagoon/lagoon-service-images"

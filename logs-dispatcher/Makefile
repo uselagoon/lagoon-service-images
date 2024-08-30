@@ -1,6 +1,6 @@
 .PHONY: build
 build:
-	docker build .
+	docker build . -t lagoon/logs-dispatcher:latest
 
 .PHONY: update-gemfile
 update-gemfile:
@@ -11,7 +11,7 @@ update-gemfile:
 		-v $$PWD/Gemfile.lock:/tmp/Gemfile.lock \
 		-w /tmp \
 		--entrypoint bundle \
-		fluent/fluentd:v1.15-1 \
+		fluent/fluentd:v1.16.5-1.0 \
 		lock --update
 
 .PHONY: update-vendor-cache
@@ -24,5 +24,5 @@ update-vendor-cache:
 		-w /tmp \
 		-e BUNDLE_NO_INSTALL=true \
 		--entrypoint bundle \
-		fluent/fluentd:v1.15-1 \
+		fluent/fluentd:v1.16.5-1.0 \
 		cache

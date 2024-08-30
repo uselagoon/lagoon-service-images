@@ -1,4 +1,4 @@
-FROM fluent/fluentd:v1.15-1
+FROM fluent/fluentd:v1.16.5-1.0
 
 LABEL org.opencontainers.image.authors="The Lagoon Authors" maintainer="The Lagoon Authors"
 LABEL org.opencontainers.image.source="https://github.com/uselagoon/lagoon-service-images" repository="https://github.com/uselagoon/lagoon-service-images"
@@ -8,7 +8,7 @@ USER root
 COPY Gemfile Gemfile.lock /
 
 RUN apk add --no-cache --update --virtual .build-deps \
-      build-base ruby-dev ruby-bundler \
+      build-base ruby-dev ruby-bundler linux-headers \
       && BUNDLE_FROZEN=true BUNDLE_SYSTEM=true bundle install \
       && gem list \
       && apk del .build-deps \
