@@ -10,7 +10,9 @@ import (
 	"strings"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/robfig/cron/v3"
 	machineryvars "github.com/uselagoon/machinery/utils/variables"
@@ -25,10 +27,10 @@ var BIP = machineryvars.GetEnv("BIP", "172.16.0.1/16")
 var logLevel = machineryvars.GetEnv("LOG_LEVEL", "info")
 var REGISTRY_MIRROR = machineryvars.GetEnv("REGISTRY_MIRROR", "")
 var pruneImagesSchedule = machineryvars.GetEnv("PRUNE_SCHEDULE", "22 1 * * *")
+var pruneDanglingSchedule = machineryvars.GetEnv("PRUNE_DANGLING_SCHEDULE", "22 1 * * *")
 var removeExitedSchedule = machineryvars.GetEnv("REMOVE_EXITED_SCHEDULE", "22 */4 * * *")
 var updateImagesSchedule = machineryvars.GetEnv("UPDATE_IMAGES_SCHEDULE", "*/15 * * * *")
 var pruneImagesUntil = machineryvars.GetEnv("PRUNE_IMAGES_UNTIL", "168h")
-var danglingFilter = machineryvars.GetEnv("DANGLING_FILTER", "true")
 
 func main() {
 	cli, err := client.NewClientWithOpts(
@@ -36,7 +38,7 @@ func main() {
 		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
-		log.Fatalf("Error", err)
+		log.Fatalf("Error: %v", err)
 	}
 	defer cli.Close()
 
@@ -54,51 +56,70 @@ func main() {
 	}
 	c := cron.New()
 	pruneImages(cli, c)
+	pruneDanglingImages(cli, c)
 	removeExited(cli, c)
 	updateImages(cli, c)
 	c.Start()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("could not run command: ", err)
+		log.Fatalf("could not run command: %v", err)
 	}
 }
 
 func pruneImages(client *client.Client, c *cron.Cron) {
-	c.AddFunc(pruneImagesSchedule, func() {
+	_, err := c.AddFunc(pruneImagesSchedule, func() {
 		log.Println("Starting image prune")
 		ageFilter := filters.NewArgs()
-		pruneDanglingFilter := filters.NewArgs()
 		ageFilter.Add("until", pruneImagesUntil)
-		pruneDanglingFilter.Add("dangling", danglingFilter)
 
-		// # prune all images older than 7 days or what is specified in the environment variable
-		_, err := client.ImagesPrune(context.Background(), ageFilter)
+		// prune all images older than 7 days or what is specified in the environment variable
+		pruneReport, err := client.ImagesPrune(context.Background(), ageFilter)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		// # prune all docker build cache images older than 7 days or what is specified in the environment variable
+		// prune all docker build cache images older than 7 days or what is specified in the environment variable
 		_, buildErr := client.BuildCachePrune(context.Background(), types.BuildCachePruneOptions{Filters: ageFilter})
 		if buildErr != nil {
 			log.Println(buildErr)
 		}
-		// # after old images are pruned, clean up dangling images
-		_, pruneErr := client.ImagesPrune(context.Background(), pruneDanglingFilter)
+		log.Printf("Image prune complete: %d images deleted, %d bytes reclaimed\n",
+			len(pruneReport.ImagesDeleted), pruneReport.SpaceReclaimed)
+	})
+
+	if err != nil {
+		log.Printf("Error initiating pruneImages cron: %v\n", err)
+	}
+}
+
+func pruneDanglingImages(client *client.Client, c *cron.Cron) {
+	_, err := c.AddFunc(pruneDanglingSchedule, func() {
+		log.Println("Starting dangling image prune")
+		pruneDanglingFilter := filters.NewArgs()
+		pruneDanglingFilter.Add("dangling", "true")
+
+		// Cleans up dangling images
+		pruneReport, pruneErr := client.ImagesPrune(context.Background(), pruneDanglingFilter)
 		if pruneErr != nil {
 			log.Println(pruneErr)
 		}
-		log.Println("Prune complete")
+		log.Printf("Dangling Image prune complete: %d images deleted, %d bytes reclaimed\n",
+			len(pruneReport.ImagesDeleted), pruneReport.SpaceReclaimed)
 	})
+
+	if err != nil {
+		log.Printf("Error initiating pruneDanglingImages cron: %v\n", err)
+	}
 }
 
 func removeExited(client *client.Client, c *cron.Cron) {
-	c.AddFunc(removeExitedSchedule, func() {
+	_, err := c.AddFunc(removeExitedSchedule, func() {
 		log.Println("Starting removeExited")
 		ctx := context.Background()
 		statusFilter := filters.NewArgs()
 		statusFilter.Add("status", "exited")
-		containers, err := client.ContainerList(ctx, types.ContainerListOptions{
+		containers, err := client.ContainerList(ctx, container.ListOptions{
 			Filters: statusFilter,
 		})
 		if err != nil {
@@ -106,9 +127,9 @@ func removeExited(client *client.Client, c *cron.Cron) {
 			return
 		}
 
-		// # remove all exited containers
-		for _, container := range containers {
-			err := client.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{
+		// remove all exited containers
+		for _, con := range containers {
+			err := client.ContainerRemove(ctx, con.ID, container.RemoveOptions{
 				Force:         true,
 				RemoveVolumes: true,
 			})
@@ -118,14 +139,18 @@ func removeExited(client *client.Client, c *cron.Cron) {
 		}
 		log.Println("removeExited complete")
 	})
+
+	if err != nil {
+		log.Printf("Error initiating removeExited cron: %v\n", err)
+	}
 }
 
 func updateImages(client *client.Client, c *cron.Cron) {
-	c.AddFunc(updateImagesSchedule, func() {
+	_, err := c.AddFunc(updateImagesSchedule, func() {
 		log.Println("Starting update images")
 		ctx := context.Background()
-		filters := addFilters(repositoriesToUpdate)
-		preUpdateImages, err := client.ImageList(ctx, types.ImageListOptions{Filters: filters})
+		ImgFilters := addFilters(repositoriesToUpdate)
+		preUpdateImages, err := client.ImageList(ctx, image.ListOptions{Filters: ImgFilters})
 		if err != nil {
 			log.Println(err)
 			return
@@ -143,9 +168,9 @@ func updateImages(client *client.Client, c *cron.Cron) {
 			}
 		}
 
-		// # Iterates through all images that have the name of the repository we are interested in it
-		for _, image := range imgRepoTags {
-			out, err := client.ImagePull(ctx, image, types.ImagePullOptions{})
+		// Iterates through all images that have the name of the repository we are interested in it
+		for _, img := range imgRepoTags {
+			out, err := client.ImagePull(ctx, img, image.PullOptions{})
 
 			if err != nil {
 				log.Println(err)
@@ -158,7 +183,7 @@ func updateImages(client *client.Client, c *cron.Cron) {
 			}
 		}
 
-		postUpdateImages, err := client.ImageList(ctx, types.ImageListOptions{Filters: filters})
+		postUpdateImages, err := client.ImageList(ctx, image.ListOptions{Filters: ImgFilters})
 		if err != nil {
 			log.Println(err)
 		}
@@ -185,6 +210,10 @@ func updateImages(client *client.Client, c *cron.Cron) {
 		}
 		log.Println(fmt.Sprintf("Update images complete | %d %s updated", len(updatedImages), imgPluralize))
 	})
+
+	if err != nil {
+		log.Printf("Error initiating updateImages cron: %v\n", err)
+	}
 }
 
 func imgComparison(preUpdate, postUpdate []string) []string {
@@ -211,10 +240,10 @@ func imgComparison(preUpdate, postUpdate []string) []string {
 }
 
 func addFilters(repo string) filters.Args {
-	filters := filters.NewArgs()
+	repoFilters := filters.NewArgs()
 	splitRepos := strings.Split(repo, "|")
 	for _, repo := range splitRepos {
-		filters.Add("reference", repo)
+		repoFilters.Add("reference", repo)
 	}
-	return filters
+	return repoFilters
 }
