@@ -22,15 +22,17 @@ const EnvOverrideHost = "DOCKER_HOST"
 
 var dockerHost = machineryvars.GetEnv("DOCKER_HOST", "docker-host")
 var repositoriesToUpdate = machineryvars.GetEnv("REPOSITORIES_TO_UPDATE", "uselagoon")
-var REGISTRY = machineryvars.GetEnv("REGISTRY", "docker-registry.default.svc:5000")
-var BIP = machineryvars.GetEnv("BIP", "172.16.0.1/16")
+var registry = machineryvars.GetEnv("REGISTRY", "docker-registry.default.svc:5000")
+var bip = machineryvars.GetEnv("BIP", "172.16.0.1/16")
 var logLevel = machineryvars.GetEnv("LOG_LEVEL", "info")
-var REGISTRY_MIRROR = machineryvars.GetEnv("REGISTRY_MIRROR", "")
+var registryMirror = machineryvars.GetEnv("REGISTRY_MIRROR", "")
 var pruneImagesSchedule = machineryvars.GetEnv("PRUNE_SCHEDULE", "22 1 * * *")
 var pruneDanglingSchedule = machineryvars.GetEnv("PRUNE_DANGLING_SCHEDULE", "22 1 * * *")
+var pruneBuilderCacheSchedule = machineryvars.GetEnv("PRUNE_BUILDER_CACHE_SCHEDULE", "22 1 * * *")
 var removeExitedSchedule = machineryvars.GetEnv("REMOVE_EXITED_SCHEDULE", "22 */4 * * *")
 var updateImagesSchedule = machineryvars.GetEnv("UPDATE_IMAGES_SCHEDULE", "*/15 * * * *")
 var pruneImagesUntil = machineryvars.GetEnv("PRUNE_IMAGES_UNTIL", "168h")
+var pruneBuilderCacheUntil = machineryvars.GetEnv("PRUNE_BUILDER_CACHE_UNTIL", "168h")
 
 func main() {
 	cli, err := client.NewClientWithOpts(
@@ -42,12 +44,12 @@ func main() {
 	}
 	defer cli.Close()
 
-	var command = fmt.Sprintf("/usr/local/bin/dind /usr/local/bin/dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --bip=%s --storage-driver=overlay2 --tls=false --log-level=%s", BIP, logLevel)
-	if REGISTRY != "" {
-		command = command + fmt.Sprintf(" --insecure-registry=%s", REGISTRY)
+	var command = fmt.Sprintf("/usr/local/bin/dind /usr/local/bin/dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --bip=%s --storage-driver=overlay2 --tls=false --log-level=%s", bip, logLevel)
+	if registry != "" {
+		command = command + fmt.Sprintf(" --insecure-registry=%s", registry)
 	}
-	if REGISTRY_MIRROR != "" {
-		command = command + fmt.Sprintf(" --registry-mirror=%s", REGISTRY_MIRROR)
+	if registryMirror != "" {
+		command = command + fmt.Sprintf(" --registry-mirror=%s", registryMirror)
 	}
 	var cmd = exec.Command("sh", "-c", command)
 
@@ -57,6 +59,7 @@ func main() {
 	c := cron.New()
 	pruneImages(cli, c)
 	pruneDanglingImages(cli, c)
+	pruneBuilderCache(cli, c)
 	removeExited(cli, c)
 	updateImages(cli, c)
 	c.Start()
@@ -78,11 +81,6 @@ func pruneImages(client *client.Client, c *cron.Cron) {
 		if err != nil {
 			log.Println(err)
 			return
-		}
-		// prune all docker build cache images older than 7 days or what is specified in the environment variable
-		_, buildErr := client.BuildCachePrune(context.Background(), types.BuildCachePruneOptions{Filters: ageFilter})
-		if buildErr != nil {
-			log.Println(buildErr)
 		}
 		log.Printf("Image prune complete: %d images deleted, %d bytes reclaimed\n",
 			len(pruneReport.ImagesDeleted), pruneReport.SpaceReclaimed)
@@ -110,6 +108,29 @@ func pruneDanglingImages(client *client.Client, c *cron.Cron) {
 
 	if err != nil {
 		log.Printf("Error initiating pruneDanglingImages cron: %v\n", err)
+	}
+}
+
+func pruneBuilderCache(client *client.Client, c *cron.Cron) {
+	_, err := c.AddFunc(pruneBuilderCacheSchedule, func() {
+		log.Println("Starting builder cache prune")
+		ageFilter := filters.NewArgs()
+		ageFilter.Add("until", pruneBuilderCacheUntil)
+		builderCacheOpts := types.BuildCachePruneOptions{
+			Filters: ageFilter,
+		}
+
+		// Cleans up build cache images
+		pruneReport, pruneErr := client.BuildCachePrune(context.Background(), builderCacheOpts)
+		if pruneErr != nil {
+			log.Println(pruneErr)
+		}
+		log.Printf("Builder Cache prune complete: %d deleted, %d bytes reclaimed\n",
+			len(pruneReport.CachesDeleted), pruneReport.SpaceReclaimed)
+	})
+
+	if err != nil {
+		log.Printf("Error initiating pruneBuilderCache cron: %v\n", err)
 	}
 }
 
@@ -197,7 +218,7 @@ func updateImages(client *client.Client, c *cron.Cron) {
 		for _, img := range postUpdateImages {
 			for _, updatedImg := range updatedImages {
 				if img.ID == updatedImg {
-					log.Println(fmt.Sprintf("Updated image %s", img.RepoTags))
+					log.Printf("Updated image %s", img.RepoTags)
 				}
 			}
 		}
@@ -208,7 +229,7 @@ func updateImages(client *client.Client, c *cron.Cron) {
 		} else {
 			imgPluralize = "images"
 		}
-		log.Println(fmt.Sprintf("Update images complete | %d %s updated", len(updatedImages), imgPluralize))
+		log.Printf("Update images complete | %d %s updated", len(updatedImages), imgPluralize)
 	})
 
 	if err != nil {
