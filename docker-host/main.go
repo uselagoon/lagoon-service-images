@@ -33,6 +33,7 @@ var removeExitedSchedule = machineryvars.GetEnv("REMOVE_EXITED_SCHEDULE", "22 */
 var updateImagesSchedule = machineryvars.GetEnv("UPDATE_IMAGES_SCHEDULE", "*/15 * * * *")
 var pruneImagesUntil = machineryvars.GetEnv("PRUNE_IMAGES_UNTIL", "168h")
 var pruneBuilderCacheUntil = machineryvars.GetEnv("PRUNE_BUILDER_CACHE_UNTIL", "168h")
+var removeExitedUntil = machineryvars.GetEnv("REMOVE_EXITED_UNTIL", "168h")
 
 func main() {
 	cli, err := client.NewClientWithOpts(
@@ -139,7 +140,7 @@ func removeExited(client *client.Client, c *cron.Cron) {
 		log.Println("Starting removeExited")
 		ctx := context.Background()
 		statusFilter := filters.NewArgs()
-		statusFilter.Add("status", "exited")
+		statusFilter.Add("until", removeExitedUntil)
 		containers, err := client.ContainerList(ctx, container.ListOptions{
 			Filters: statusFilter,
 		})
