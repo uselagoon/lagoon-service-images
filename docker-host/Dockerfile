@@ -1,4 +1,4 @@
-FROM golang:1.22-alpine3.20 as builder
+FROM golang:1.22-alpine3.20 AS builder
 
 WORKDIR /build
 
@@ -9,7 +9,7 @@ COPY go.sum .
 # compile
 RUN CGO_ENABLED=0  GOOS=linux GOARCH=amd64 go build docker-host .
 
-FROM uselagoon/commons:latest as commons
+FROM uselagoon/commons:latest AS commons
 FROM docker:27.0.3-dind
 
 LABEL org.opencontainers.image.authors="The Lagoon Authors" maintainer="The Lagoon Authors"
