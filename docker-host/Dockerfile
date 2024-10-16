@@ -1,5 +1,15 @@
-FROM uselagoon/commons:latest as commons
+FROM golang:1.22-alpine3.20 AS builder
 
+WORKDIR /build
+
+COPY main.go .
+COPY go.mod .
+COPY go.sum .
+
+# compile
+RUN CGO_ENABLED=0  GOOS=linux GOARCH=amd64 go build docker-host .
+
+FROM uselagoon/commons:latest AS commons
 FROM docker:27.0.3-dind
 
 LABEL org.opencontainers.image.authors="The Lagoon Authors" maintainer="The Lagoon Authors"
@@ -10,6 +20,8 @@ COPY --from=commons /lagoon /lagoon
 COPY --from=commons /bin/fix-permissions /bin/ep /bin/docker-sleep /bin/
 COPY --from=commons /sbin/tini /sbin/
 COPY --from=commons /home /home
+
+COPY --from=builder /build/docker-host /docker-host
 
 ENV TMPDIR=/tmp \
     TMP=/tmp \
@@ -23,17 +35,12 @@ RUN apk add --no-cache bash
 
 ENV DOCKER_HOST=docker-host \
     REGISTRY=docker-registry.default.svc:5000 \
-    REPOSITORY_TO_UPDATE=amazeeio \
+    REPOSITORIES_TO_UPDATE=*uselagoon/*:* \
     BIP=172.16.0.1/16 \
     REGISTRY_MIRROR=https://imagecache.amazeeio.cloud
 
 RUN fix-permissions /home
 
-COPY update-push-images.sh /update-push-images.sh
-COPY update-images.sh /update-images.sh
-COPY prune-images.sh /prune-images.sh
-COPY remove-exited.sh /remove-exited.sh
-
 ENTRYPOINT ["/sbin/tini", "--", "/lagoon/entrypoints.sh"]
 
-CMD ["sh", "-c", "sh /usr/local/bin/dind /usr/local/bin/dockerd --host=tcp://0.0.0.0:2375 --host=unix:///var/run/docker.sock --insecure-registry=${REGISTRY} --insecure-registry=harbor-harbor-core.harbor.svc.cluster.local:80 --bip=${BIP} --storage-driver=overlay2 --registry-mirror=${REGISTRY_MIRROR}"]
+CMD ["sh", "-c", "/docker-host"]
