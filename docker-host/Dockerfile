@@ -1,13 +1,21 @@
 FROM golang:1.22-alpine3.20 AS builder
+ARG TARGETOS
+ARG TARGETARCH
 
-WORKDIR /build
+WORKDIR /workspace
+# Copy the Go Modules manifests
+COPY go.mod go.mod
+COPY go.sum go.sum
+# cache deps before building and copying source so that we don't need to re-download as much
+# and so that source changes don't invalidate our downloaded layer
+RUN go mod download
 
-COPY main.go .
-COPY go.mod .
-COPY go.sum .
+# Copy the go source
+COPY cmd/main.go cmd/main.go
+COPY internal/ internal/
 
 # compile
-RUN CGO_ENABLED=0  GOOS=linux GOARCH=amd64 go build docker-host .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o docker-host cmd/main.go
 
 FROM uselagoon/commons:latest AS commons
 FROM docker:27.0.3-dind
@@ -21,7 +29,7 @@ COPY --from=commons /bin/fix-permissions /bin/ep /bin/docker-sleep /bin/
 COPY --from=commons /sbin/tini /sbin/
 COPY --from=commons /home /home
 
-COPY --from=builder /build/docker-host /docker-host
+COPY --from=builder /workspace/docker-host /docker-host
 
 ENV TMPDIR=/tmp \
     TMP=/tmp \
