@@ -1,0 +1,46 @@
+version: 2
+updates:
+- package-ecosystem: github-actions
+  commit-message:
+    prefix: chore
+    include: scope
+  directory: /
+  schedule:
+    interval: monthly
+  groups:
+    github-actions:
+      patterns:
+      - "*"
+      update-types:
+      - "minor"
+      - "patch"
+- package-ecosystem: docker
+  commit-message:
+    prefix: chore
+    include: scope
+  directory: /
+  schedule:
+    interval: monthly
+  groups:
+    docker:
+      patterns:
+      - "*"
+      update-types:
+      - "minor"
+      - "patch"
+- package-ecosystem: bundler
+  commit-message:
+    prefix: chore
+    include: scope
+  directories:
+  - /logs-concentrator
+  - /logs-dispatcher
+  schedule:
+    interval: monthly
+  groups:
+    bundler:
+      patterns:
+      - "*"
+      update-types:
+      - "minor"
+      - "patch"
