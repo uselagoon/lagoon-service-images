@@ -19,6 +19,11 @@ on:
 
 jobs:
   docker:
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+      packages: write
     runs-on: ubuntu-latest
     steps:
       -
@@ -101,9 +106,22 @@ jobs:
       -
         name: Build and push
         uses: docker/build-push-action@v6
+        id: build-and-push
         with:
           context: logs-dispatcher
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      - name: Attest dockerhub image
+        uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c # v1.4.3
+        with:
+          subject-digest: ${{steps.build-and-push.outputs.digest}}
+          subject-name: index.docker.io/${{ github.repository_owner }}/logs-dispatcher
+          push-to-registry: true
+      - name: Attest ghcr image
+        uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c # v1.4.3
+        with:
+          subject-digest: ${{steps.build-and-push.outputs.digest}}
+          subject-name: ghcr.io/${{ github.repository_owner }}/logs-dispatcher
+          push-to-registry: true
