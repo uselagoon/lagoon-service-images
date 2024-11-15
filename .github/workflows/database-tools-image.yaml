@@ -7,7 +7,7 @@ on:
       - 'build-image'
     paths:
       - 'database-tools/**'
-      - '.github/workflows/database-tools.yaml'
+      - '.github/workflows/database-tools-image.yaml'
     tags:
       - 'database-tools-v*.*.*'
   pull_request:
@@ -15,7 +15,7 @@ on:
       - 'main'
     paths:
       - 'database-tools/**'
-      - '.github/workflows/database-tools.yaml'
+      - '.github/workflows/database-tools-image.yaml'
 
 jobs:
   docker:
