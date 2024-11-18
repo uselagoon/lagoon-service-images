@@ -43,17 +43,17 @@ jobs:
         name: Create SERVICE_TAG variable
         id: service_tag_var
         run: |
-          RAW_TAG=$(echo $(git describe --abbrev=0 --tags --match 'logs-concentrator-*'))
+          RAW_TAG=$(git describe --abbrev=0 --tags --match 'logs-concentrator-*')
           SERVICE_TAG=${RAW_TAG#"logs-concentrator-"}
           echo "using logs-concentrator tag $SERVICE_TAG"
-          echo "SERVICE_TAG=$SERVICE_TAG" >> $GITHUB_ENV
+          echo "SERVICE_TAG=$SERVICE_TAG" >> "$GITHUB_ENV"
       -
         name: Set version for non-tag build
         if: "!startsWith(github.ref, 'refs/tags/logs-concentrator')"
         id: version_non-tag_build
         run: |
-          DOCKER_TAG=${{ env.SERVICE_TAG }}-$(git rev-parse --short=8 HEAD)
-          echo "DOCKER_TAG=$DOCKER_TAG" >> $GITHUB_ENV
+          DOCKER_TAG="${{ env.SERVICE_TAG }}-$(git rev-parse --short=8 HEAD)"
+          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
           echo "logs-concentrator version $DOCKER_TAG"
       -
         name: Set version for tag build
@@ -61,7 +61,7 @@ jobs:
         id: version_tag_build
         run: |
           DOCKER_TAG=${{ env.SERVICE_TAG }}
-          echo "DOCKER_TAG=$DOCKER_TAG" >> $GITHUB_ENV
+          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
           echo "logs-concentrator version $DOCKER_TAG"
       -
         name: Docker meta
