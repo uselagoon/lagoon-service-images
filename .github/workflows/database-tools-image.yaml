@@ -19,11 +19,11 @@ on:
 
 jobs:
   docker:
-    permissions:
-      attestations: write
-      contents: write
-      id-token: write
-      packages: write
+    # permissions:
+    #   attestations: write
+    #   contents: write
+    #   id-token: write
+    #   packages: write
     runs-on: ubuntu-latest
     steps:
       -
