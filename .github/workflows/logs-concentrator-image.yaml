@@ -19,6 +19,11 @@ on:
 
 jobs:
   docker:
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+      packages: write
     runs-on: ubuntu-latest
     steps:
       -
@@ -38,17 +43,17 @@ jobs:
         name: Create SERVICE_TAG variable
         id: service_tag_var
         run: |
-          RAW_TAG=$(echo $(git describe --abbrev=0 --tags --match 'logs-concentrator-*'))
+          RAW_TAG=$(git describe --abbrev=0 --tags --match 'logs-concentrator-*')
           SERVICE_TAG=${RAW_TAG#"logs-concentrator-"}
           echo "using logs-concentrator tag $SERVICE_TAG"
-          echo "SERVICE_TAG=$SERVICE_TAG" >> $GITHUB_ENV
+          echo "SERVICE_TAG=$SERVICE_TAG" >> "$GITHUB_ENV"
       -
         name: Set version for non-tag build
         if: "!startsWith(github.ref, 'refs/tags/logs-concentrator')"
         id: version_non-tag_build
         run: |
-          DOCKER_TAG=${{ env.SERVICE_TAG }}-$(git rev-parse --short=8 HEAD)
-          echo "DOCKER_TAG=$DOCKER_TAG" >> $GITHUB_ENV
+          DOCKER_TAG="${{ env.SERVICE_TAG }}-$(git rev-parse --short=8 HEAD)"
+          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
           echo "logs-concentrator version $DOCKER_TAG"
       -
         name: Set version for tag build
@@ -56,7 +61,7 @@ jobs:
         id: version_tag_build
         run: |
           DOCKER_TAG=${{ env.SERVICE_TAG }}
-          echo "DOCKER_TAG=$DOCKER_TAG" >> $GITHUB_ENV
+          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
           echo "logs-concentrator version $DOCKER_TAG"
       -
         name: Docker meta
@@ -101,9 +106,35 @@ jobs:
       -
         name: Build and push
         uses: docker/build-push-action@v6
+        id: build-and-push
         with:
           context: logs-concentrator
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      - name: Attest dockerhub image
+        uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c # v1.4.3
+        with:
+          subject-digest: ${{steps.build-and-push.outputs.digest}}
+          subject-name: index.docker.io/${{ github.repository_owner }}/logs-concentrator
+          push-to-registry: true
+      - name: Attest ghcr image
+        uses: actions/attest-build-provenance@1c608d11d69870c2092266b3f9a6f3abbf17002c # v1.4.3
+        with:
+          subject-digest: ${{steps.build-and-push.outputs.digest}}
+          subject-name: ghcr.io/${{ github.repository_owner }}/logs-concentrator
+          push-to-registry: true
+      - uses: anchore/sbom-action@fc46e51fd3cb168ffb36c6d1915723c47db58abb # v0.17.7
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          image: ghcr.io/${{ github.repository_owner }}/logs-concentrator@${{steps.build-and-push.outputs.digest}}
+          output-file: sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            sbom.spdx.json
