@@ -53,7 +53,7 @@ GEM
     fluent-plugin-prometheus (2.2.0)
       fluentd (>= 1.9.1, < 2)
       prometheus-client (>= 2.1.0)
-    fluentd (1.17.1)
+    fluentd (1.18.0)
       base64 (~> 0.2)
       bundler
       cool.io (>= 1.4.5, < 2.0.0)
@@ -73,7 +73,7 @@ GEM
     jmespath (1.6.2)
     json (2.7.6)
     logger (1.6.1)
-    msgpack (1.7.3)
+    msgpack (1.7.5)
     multi_json (1.15.0)
     net-http (0.4.1)
       uri
@@ -104,7 +104,7 @@ DEPENDENCIES
   fluent-plugin-elasticsearch (= 5.4.3)
   fluent-plugin-opensearch (= 1.1.5)
   fluent-plugin-prometheus (= 2.2.0)
-  fluentd (= 1.17.1)
+  fluentd (= 1.18.0)
 
 BUNDLED WITH
    2.5.22
