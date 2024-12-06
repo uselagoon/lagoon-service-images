@@ -114,13 +114,13 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
       - name: Attest dockerhub image
-        uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184180e6d0018 # v1.4.4
+        uses: actions/attest-build-provenance@c4fbc648846ca6f503a13a2281a5e7b98aa57202 # v2.0.1
         with:
           subject-digest: ${{steps.build-and-push.outputs.digest}}
           subject-name: index.docker.io/${{ github.repository_owner }}/drush-alias
           push-to-registry: true
       - name: Attest ghcr image
-        uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184180e6d0018 # v1.4.4
+        uses: actions/attest-build-provenance@c4fbc648846ca6f503a13a2281a5e7b98aa57202 # v2.0.1
         with:
           subject-digest: ${{steps.build-and-push.outputs.digest}}
           subject-name: ghcr.io/${{ github.repository_owner }}/drush-alias
