@@ -14,4 +14,4 @@ allow-licenses:
 allow-dependencies-licenses:
 # ostruct is available as open source under the terms of the 2-Clause BSD License.
 # https://github.com/ruby/ostruct?tab=License-1-ov-file
-- pkg:rubygems/ostruct
+- pkg:gem/ostruct
