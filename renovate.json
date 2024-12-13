@@ -1,12 +1,50 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:base"
-  ],
-  "packageRules": [
-    {
-      "matchManagers": ["github-actions"],
-      "groupName": "GitHub actions"
-    }
-  ]
-}
+    "baseBranches": [
+      "main"
+    ],
+    "extends": [
+      "mergeConfidence:all-badges",
+      "config:recommended",
+      ":disableRateLimiting",
+      "helpers:pinGitHubActionDigests"
+    ],
+    "labels": [
+      "dependencies"
+    ],
+    "dependencyDashboard": true,
+    "separateMajorMinor": true,
+    "prHourlyLimit": 0,
+    "packageRules": [
+      {
+        "matchManagers": [
+          "github-actions"
+        ],
+        "matchBaseBranches": [
+          "main"
+        ],
+        "groupName": "GitHub actions monthly minor/patch",
+        "matchUpdateTypes": [
+          "minor",
+          "patch",
+          "digest"
+        ],
+        "schedule": ["on the first day of the month"],
+        "automerge": true,
+        "automergeType": "pr"
+      },
+      {
+        "matchManagers": [
+          "github-actions"
+        ],
+        "matchBaseBranches": [
+          "main"
+        ],
+        "groupName": "GitHub actions major",
+        "matchUpdateTypes": [
+          "major"
+        ],
+        "automerge": true,
+        "automergeType": "pr"
+      }
+    ]
+  }
