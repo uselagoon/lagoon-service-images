@@ -2,7 +2,7 @@ ARG UPSTREAM_REPO
 ARG UPSTREAM_TAG
 ARG GO_VER
 FROM ${UPSTREAM_REPO:-uselagoon}/commons:${UPSTREAM_TAG:-latest} AS commons
-FROM aquasec/trivy:0.52.2 AS trivy
+FROM aquasec/trivy:0.58.1 AS trivy
 
 FROM docker:20.10.24
 
