@@ -8,6 +8,7 @@ allow-licenses:
 - 'MIT'
 - 'PostgreSQL'
 - 'Python-2.0'
+- 'Ruby'
 - 'X11'
 - 'Zlib'
 
