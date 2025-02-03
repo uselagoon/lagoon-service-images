@@ -13,9 +13,5 @@ allow-licenses:
 - 'Zlib'
 
 allow-dependencies-licenses:
-# ostruct is available as open source under the terms of the 2-Clause BSD License.
-# https://github.com/ruby/ostruct?tab=License-1-ov-file
-- pkg:gem/ostruct
-# csv is available as open source under the terms of the 2-Clause BSD License.
-# https://github.com/ruby/csv?tab=BSD-2-Clause-1-ov-file#readme
-- pkg:gem/csv
+# dependency review doesn't support multiple-licensed packages 
+# https://github.com/actions/dependency-review-action/issues/263
