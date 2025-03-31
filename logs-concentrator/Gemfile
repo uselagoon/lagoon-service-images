@@ -6,5 +6,5 @@ git_source(:github) { |repo_name| "https://github.com/#{repo_name}" }
 
 gem "fluent-plugin-elasticsearch", "5.4.3"
 gem "fluent-plugin-opensearch", "1.1.5"
-gem "fluent-plugin-prometheus", "2.2.0"
+gem "fluent-plugin-prometheus", "2.2.1"
 gem "fluentd", "1.17.1"
