@@ -1,0 +1,142 @@
+name: Publish insights-trivy image
+
+on:
+  schedule:
+    - cron: "1 0 * * *"
+  push:
+    branches:
+      - 'main'
+      - 'build-image'
+    paths:
+      - 'insights-trivy/**'
+      - '.github/workflows/insights-trivy-image.yaml'
+    tags:
+      - 'insights-trivy-v*.*.*'
+  pull_request:
+    branches:
+      - 'main'
+    paths:
+      - 'insights-trivy/**'
+      - '.github/workflows/insights-trivy-image.yaml'
+
+jobs:
+  docker:
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+      packages: write
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout PR
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          fetch-depth: "0"
+          ref: ${{ github.event.pull_request.head.sha }}
+      -
+        name: Checkout Branch or Tag
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        if: ${{ github.event_name != 'pull_request' }}
+        with:
+          fetch-depth: "0"
+      -
+        name: Create SERVICE_TAG variable
+        id: service_tag_var
+        run: |
+          RAW_TAG=$(git describe --abbrev=0 --tags --match 'insights-trivy-*')
+          SERVICE_TAG=${RAW_TAG#"insights-trivy-"}
+          echo "using insights-trivy tag $SERVICE_TAG"
+          echo "SERVICE_TAG=$SERVICE_TAG" >> "$GITHUB_ENV"
+      -
+        name: Set version for non-tag build
+        if: "!startsWith(github.ref, 'refs/tags/insights-trivy')"
+        id: version_non-tag_build
+        run: |
+          DOCKER_TAG="${{ env.SERVICE_TAG }}-$(git rev-parse --short=8 HEAD)"
+          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
+          echo "insights-trivy version $DOCKER_TAG"
+      -
+        name: Set version for tag build
+        if: "startsWith(github.ref, 'refs/tags/insights-trivy')"
+        id: version_tag_build
+        run: |
+          DOCKER_TAG=${{ env.SERVICE_TAG }}
+          echo "DOCKER_TAG=$DOCKER_TAG" >> "$GITHUB_ENV"
+          echo "insights-trivy version $DOCKER_TAG"
+      -
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            ${{ github.repository_owner }}/insights-trivy
+            ghcr.io/${{ github.repository_owner }}/insights-trivy
+          tags: |
+            # set edge tag for default branch
+            type=edge,enable={{is_default_branch}}
+            # set tag+build for default branch
+            type=raw,value=${{ env.DOCKER_TAG}},enable={{is_default_branch}}
+            # tag event
+            type=raw,value=${{ env.DOCKER_TAG}},enable=${{ startsWith(github.ref, 'refs/tags/insights-trivy') }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/insights-trivy') }}
+            # pull request event
+            type=ref,event=pr
+            # pull request event
+            type=ref,event=branch
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Login to GHCR
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Build and push
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
+        id: build-and-push
+        with:
+          context: insights-trivy
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      - name: Attest dockerhub image
+        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2 # v2.2.3
+        with:
+          subject-digest: ${{steps.build-and-push.outputs.digest}}
+          subject-name: index.docker.io/${{ github.repository_owner }}/insights-trivy
+          push-to-registry: true
+      - name: Attest ghcr image
+        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2 # v2.2.3
+        with:
+          subject-digest: ${{steps.build-and-push.outputs.digest}}
+          subject-name: ghcr.io/${{ github.repository_owner }}/insights-trivy
+          push-to-registry: true
+      - uses: anchore/sbom-action@f325610c9f50a54015d37c8d16cb3b0e2c8f4de0 # v0.18.0
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          image: ghcr.io/${{ github.repository_owner }}/insights-trivy@${{steps.build-and-push.outputs.digest}}
+          output-file: sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Release
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            sbom.spdx.json
