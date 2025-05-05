@@ -77,7 +77,7 @@ jobs:
           tags: |
             # set edge tag for default branch
             type=edge,enable={{is_default_branch}}
-            # set latest tag for main branch - this is require for the scheduled builds
+            # set latest tag for main branch - this is required for the scheduled builds
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             # set tag+build for default branch
             type=raw,value=${{ env.DOCKER_TAG}},enable={{is_default_branch}}
