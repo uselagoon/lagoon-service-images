@@ -77,6 +77,8 @@ jobs:
           tags: |
             # set edge tag for default branch
             type=edge,enable={{is_default_branch}}
+            # set latest tag for main branch - this is required for the scheduled builds
+            type=raw,value=latest,enable={{is_default_branch}}
             # set tag+build for default branch
             type=raw,value=${{ env.DOCKER_TAG}},enable={{is_default_branch}}
             # tag event
@@ -86,6 +88,9 @@ jobs:
             type=ref,event=pr
             # pull request event
             type=ref,event=branch
+            #schedule event tags - gives us a tag per day
+            type=schedule,pattern={{date 'YYYYMMDD'}}
+            type=schedule,value=latest
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
