@@ -45,6 +45,20 @@
         ],
         "automerge": true,
         "automergeType": "pr"
+      },
+      {
+        "enabled": false,
+        "groupName": "Disable patch releases - packages update only major/minor",
+        "matchDatasources": [
+          "docker"
+        ],
+        "matchUpdateTypes": [
+          "patch"
+        ],
+        "matchPackageNames": [
+          "aquasec/trivy",
+          "docker"
+        ]
       }
     ]
   }
