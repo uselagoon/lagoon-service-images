@@ -1,0 +1,61 @@
+name: Label PR by Folder
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label-by-folder:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
+        with:
+          separator: "|"
+
+      - name: Label PR based on folders
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const changedFiles = "${{ steps.changed-files.outputs.all_changed_files }}".split("|");
+            const folderLabels = new Set();
+
+            for (const file of changedFiles) {
+              // Match top-level folders (e.g., "docker-host/folder/something.txt" → "docker-host")
+              const match = file.match(/^([^\/]+)/); // Extract the top-level folder from the file path
+              // Skip .github folder as it contains workflow files, not project-specific code
+              if (match && match[1] !== '.github') {
+                const folder = match[1]; // no need to sanitize, no slashes
+                folderLabels.add(folder);
+              }
+            }
+
+            if (folderLabels.size === 0) {
+              console.log("No folder-based labels required for this PR.");
+              return;
+            }
+
+            const labelsToAdd = [...folderLabels];
+            console.log(`Adding the following folder-based labels to the PR: ${labelsToAdd.join(", ")}`);
+
+            try {
+              await github.rest.issues.addLabels({
+                ...context.repo,
+                issue_number: prNumber,
+                labels: labelsToAdd,
+              });
+            } catch (error) {
+              console.error(`Failed to add labels to PR #${prNumber}:`, error);
+              throw error; // Rethrow the error to ensure the workflow fails if this is critical
+            }
