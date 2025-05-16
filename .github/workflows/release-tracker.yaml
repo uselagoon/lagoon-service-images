@@ -69,13 +69,17 @@ jobs:
 
           # --- Step 3: Group PRs by prefix (based on label and date) ---
           prefix_groups = defaultdict(list)
+          label_to_prs = defaultdict(list)
+
+          # Pre-index PRs by their labels
+          for pr in merged_prs:
+              for label in pr.labels:
+                  label_to_prs[label.name].append(pr)
 
           for prefix, (tag, since_date) in latest_tags.items():
-              for pr in merged_prs:
-                  if pr.merged_at <= since_date:
-                      continue
-                  label_names = [label.name for label in pr.labels]
-                  if prefix in label_names:
+              relevant_prs = label_to_prs.get(prefix, [])
+              for pr in relevant_prs:
+                  if pr.merged_at > since_date:
                       prefix_groups[prefix].append(pr)
 
           print("\nPRs grouped by prefix:")
