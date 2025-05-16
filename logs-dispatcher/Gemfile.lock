@@ -89,7 +89,7 @@ GEM
     fluent-plugin-sumologic_output (1.10.0)
       fluentd
       httpclient
-    fluentd (1.17.1)
+    fluentd (1.18.0)
       base64 (~> 0.2)
       bundler
       cool.io (>= 1.4.5, < 2.0.0)
@@ -186,7 +186,7 @@ DEPENDENCIES
   fluent-plugin-s3 (= 1.8.3)
   fluent-plugin-splunk-enterprise (= 0.10.2)
   fluent-plugin-sumologic_output (= 1.10.0)
-  fluentd (= 1.17.1)
+  fluentd (= 1.18.0)
 
 BUNDLED WITH
    2.5.22
