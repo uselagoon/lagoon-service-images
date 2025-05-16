@@ -15,28 +15,29 @@ GEM
     cool.io (1.9.0)
     csv (3.3.4)
     drb (2.2.1)
-    elastic-transport (8.3.5)
+    elastic-transport (8.4.0)
       faraday (< 3)
       multi_json
-    elasticsearch (8.15.0)
+    elasticsearch (9.0.2)
       elastic-transport (~> 8.3)
-      elasticsearch-api (= 8.15.0)
-    elasticsearch-api (8.15.0)
+      elasticsearch-api (= 9.0.2)
+    elasticsearch-api (9.0.2)
       multi_json
-    excon (1.1.1)
-    faraday (2.12.3)
+    excon (1.2.5)
+      logger
+    faraday (2.13.1)
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
     faraday-excon (2.3.0)
       excon (>= 1.0.0)
       faraday (>= 2.11.0, < 3)
-    faraday-net_http (3.3.0)
-      net-http
+    faraday-net_http (3.4.0)
+      net-http (>= 0.5.0)
     faraday_middleware-aws-sigv4 (1.0.1)
       aws-sigv4 (~> 1.0)
       faraday (>= 2.0, < 3)
-    fluent-plugin-elasticsearch (5.4.4)
+    fluent-plugin-elasticsearch (6.0.0)
       elasticsearch
       excon
       faraday (>= 2.0.0)
@@ -71,11 +72,11 @@ GEM
       yajl-ruby (~> 1.0)
     http_parser.rb (0.8.0)
     jmespath (1.6.2)
-    json (2.7.6)
-    logger (1.6.6)
-    msgpack (1.7.5)
+    json (2.12.0)
+    logger (1.7.0)
+    msgpack (1.8.0)
     multi_json (1.15.0)
-    net-http (0.4.1)
+    net-http (0.6.0)
       uri
     opensearch-ruby (3.4.0)
       faraday (>= 1.0, < 3)
@@ -90,9 +91,9 @@ GEM
     strptime (0.2.5)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
-    tzinfo-data (1.2024.2)
+    tzinfo-data (1.2025.2)
       tzinfo (>= 1.0.0)
-    uri (0.13.2)
+    uri (1.0.3)
     webrick (1.9.1)
     yajl-ruby (1.4.3)
 
@@ -101,7 +102,7 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
-  fluent-plugin-elasticsearch (= 5.4.4)
+  fluent-plugin-elasticsearch (= 6.0.0)
   fluent-plugin-opensearch (= 1.1.5)
   fluent-plugin-prometheus (= 2.2.1)
   fluentd (= 1.17.1)
