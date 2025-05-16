@@ -49,8 +49,13 @@ jobs:
             const labelsToAdd = [...folderLabels];
             console.log(`Adding the following folder-based labels to the PR: ${labelsToAdd.join(", ")}`);
 
-            await github.rest.issues.addLabels({
-              ...context.repo,
-              issue_number: prNumber,
-              labels: labelsToAdd,
-            });
+            try {
+              await github.rest.issues.addLabels({
+                ...context.repo,
+                issue_number: prNumber,
+                labels: labelsToAdd,
+              });
+            } catch (error) {
+              console.error(`Failed to add labels to PR #${prNumber}:`, error);
+              throw error; // Rethrow the error to ensure the workflow fails if this is critical
+            }
