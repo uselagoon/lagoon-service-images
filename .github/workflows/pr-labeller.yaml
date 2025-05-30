@@ -49,6 +49,27 @@ jobs:
             const labelsToAdd = [...folderLabels];
             console.log(`Adding the following folder-based labels to the PR: ${labelsToAdd.join(", ")}`);
 
+            for (const label of labelsToAdd) {
+              try {
+              // Try to create the label (ignore error if it already exists)
+              await github.rest.issues.createLabel({
+                ...context.repo,
+                name: label,
+                color: "bfd4f2",
+                description: `PRs that touch the '${label}' folder`,
+              });
+              console.log(`Created label: ${label}`);
+              } catch (error) {
+              if (error.status === 422) {
+                // Label already exists
+                console.log(`Label '${label}' already exists.`);
+              } else {
+                console.error(`Failed to create label '${label}':`, error);
+                throw error;
+              }
+              }
+            }
+
             try {
               await github.rest.issues.addLabels({
                 ...context.repo,
