@@ -21,6 +21,7 @@ allow-dependencies-licenses:
 - pkg:gem/mime-types-data
 - pkg:gem/multi_json
 - pkg:gem/rake
+- pkg:gem/fluent-plugin-record-modifier
 # 'MPL-2.0'
 - pkg:gem/llhttp-ffi
 # 'Ruby'
