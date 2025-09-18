@@ -10,5 +10,16 @@ update-gemfile:
 		-v $$PWD/Gemfile.lock:/tmp/Gemfile.lock \
 		-w /tmp \
 		--entrypoint bundle \
-		fluent/fluentd:v1.17.1-1.1 \
+		fluent/fluentd:v1.18.0-1.3 \
 		lock --update
+
+.PHONY: bundle-outdated
+bundle-outdated:
+	docker run --rm -it \
+		--user=$$(id -u) \
+		-v $$PWD/Gemfile:/tmp/Gemfile \
+		-v $$PWD/Gemfile.lock:/tmp/Gemfile.lock \
+		-w /tmp \
+		--entrypoint bundle \
+		fluent/fluentd:v1.18.0-1.3 \
+		outdated --only-explicit
