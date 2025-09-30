@@ -1,64 +1,66 @@
 {
-    "baseBranches": [
-      "main"
-    ],
-    "extends": [
-      "mergeConfidence:all-badges",
-      "config:recommended",
-      ":disableRateLimiting",
-      "helpers:pinGitHubActionDigests"
-    ],
-    "labels": [
-      "dependencies"
-    ],
-    "dependencyDashboard": true,
-    "separateMajorMinor": true,
-    "prHourlyLimit": 0,
-    "packageRules": [
-      {
-        "matchManagers": [
-          "github-actions"
-        ],
-        "matchBaseBranches": [
-          "main"
-        ],
-        "groupName": "GitHub actions monthly minor/patch",
-        "matchUpdateTypes": [
-          "minor",
-          "patch",
-          "digest"
-        ],
-        "schedule": ["on the first day of the month"],
-        "automerge": true,
-        "automergeType": "pr"
-      },
-      {
-        "matchManagers": [
-          "github-actions"
-        ],
-        "matchBaseBranches": [
-          "main"
-        ],
-        "groupName": "GitHub actions major",
-        "matchUpdateTypes": [
-          "major"
-        ],
-        "automerge": true,
-        "automergeType": "pr"
-      },
-      {
-        "enabled": false,
-        "groupName": "Disable patch releases - packages update only major/minor",
-        "matchDatasources": [
-          "docker"
-        ],
-        "matchUpdateTypes": [
-          "patch"
-        ],
-        "matchPackageNames": [
-          "aquasec/trivy",
-          "docker"
-        ]
-      }
-    ]
-  }
+  "baseBranchPatterns": [
+    "main"
+  ],
+  "extends": [
+    "mergeConfidence:all-badges",
+    "config:recommended",
+    ":disableRateLimiting",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "dependencyDashboard": true,
+  "separateMajorMinor": true,
+  "prHourlyLimit": 0,
+  "packageRules": [
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchBaseBranches": [
+        "main"
+      ],
+      "groupName": "GitHub actions monthly minor/patch",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest"
+      ],
+      "schedule": [
+        "on the first day of the month"
+      ],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchBaseBranches": [
+        "main"
+      ],
+      "groupName": "GitHub actions major",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "enabled": false,
+      "groupName": "Disable patch releases - packages update only major/minor",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "matchPackageNames": [
+        "aquasec/trivy",
+        "docker"
+      ]
+    }
+  ]
+}
