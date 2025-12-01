@@ -68,7 +68,7 @@ jobs:
       -
         name: Docker meta
         id: meta
-        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
           # list of Docker images to use as base name for tags
           images: |
@@ -93,7 +93,7 @@ jobs:
             type=schedule,value=latest
       -
         name: Set up QEMU
-        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
@@ -132,7 +132,7 @@ jobs:
           subject-digest: ${{steps.build-and-push.outputs.digest}}
           subject-name: ghcr.io/${{ github.repository_owner }}/insights-trivy
           push-to-registry: true
-      - uses: anchore/sbom-action@8e94d75ddd33f69f691467e42275782e4bfefe84 # v0.20.9
+      - uses: anchore/sbom-action@fbfd9c6c189226748411491745178e0c2017392d # v0.20.10
         if: startsWith(github.ref, 'refs/tags/')
         with:
           image: ghcr.io/${{ github.repository_owner }}/insights-trivy@${{steps.build-and-push.outputs.digest}}
@@ -140,7 +140,7 @@ jobs:
           upload-artifact: false
           upload-release-assets: false
       - name: Release
-        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090 # v2.4.1
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
