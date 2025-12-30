@@ -18,10 +18,12 @@ allow-dependencies-licenses:
 # The following packages are available under multiple licenses, or aren't detected by the dependency review action
 # https://github.com/actions/dependency-review-action/issues/263
 # 'MIT'
+- pkg:gem/fluent-plugin-record-modifier
 - pkg:gem/mime-types-data
 - pkg:gem/multi_json
+- pkg:gem/net-http-persistent
 - pkg:gem/rake
-- pkg:gem/fluent-plugin-record-modifier
+- pkg:gem/tzinfo-data
 # 'MPL-2.0'
 - pkg:gem/llhttp-ffi
 # 'Ruby'
