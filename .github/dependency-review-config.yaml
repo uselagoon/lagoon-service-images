@@ -26,5 +26,6 @@ allow-dependencies-licenses:
 - pkg:gem/tzinfo-data
 # 'MPL-2.0'
 - pkg:gem/llhttp-ffi
+- pkg:gem/public_suffix
 # 'Ruby'
 - pkg:gem/base64
