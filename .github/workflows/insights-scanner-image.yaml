@@ -1,6 +1,8 @@
 name: Publish insights-scanner image
 
 on:
+  schedule:
+    - cron: "1 0 * * *"
   push:
     branches:
       - 'main'

@@ -40,6 +40,14 @@ RUN architecture=$(case $(uname -m) in x86_64 | amd64) echo "amd64" ;; aarch64 |
 
 COPY --from=trivy /usr/local/bin/trivy /usr/local/bin/trivy
 
+# Here we want to pull the trivy java DB
+# This needs to be rebuilt daily, since we would like to be able to avoid pulling the javaDB on every scan
+# This will increase the overall size of the 
+ENV TRIVY_CACHE_DIR=/
+
+RUN  trivy image --cache-dir . --download-db-only && \
+     trivy image --cache-dir . --download-java-db-only
+
 WORKDIR /app
 
 COPY ./*.sh /app
