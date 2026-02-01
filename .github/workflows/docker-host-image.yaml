@@ -28,14 +28,14 @@ jobs:
     steps:
       -
         name: Checkout PR
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         if: ${{ github.event_name == 'pull_request' }}
         with:
           fetch-depth: "0"
           ref: ${{ github.event.pull_request.head.sha }}
       -
         name: Checkout Branch or Tag
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         if: ${{ github.event_name != 'pull_request' }}
         with:
           fetch-depth: "0"
@@ -92,13 +92,13 @@ jobs:
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       -
         name: Login to DockerHub
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
         name: Login to GHCR
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
@@ -114,18 +114,18 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
       - name: Attest dockerhub image
-        uses: actions/attest-build-provenance@00014ed6ed5efc5b1ab7f7f34a39eb55d41aa4f8 # v3.1.0
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
         with:
           subject-digest: ${{steps.build-and-push.outputs.digest}}
           subject-name: index.docker.io/${{ github.repository_owner }}/docker-host
           push-to-registry: true
       - name: Attest ghcr image
-        uses: actions/attest-build-provenance@00014ed6ed5efc5b1ab7f7f34a39eb55d41aa4f8 # v3.1.0
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
         with:
           subject-digest: ${{steps.build-and-push.outputs.digest}}
           subject-name: ghcr.io/${{ github.repository_owner }}/docker-host
           push-to-registry: true
-      - uses: anchore/sbom-action@a930d0ac434e3182448fe678398ba5713717112a # v0.21.0
+      - uses: anchore/sbom-action@deef08a0db64bfad603422135db61477b16cef56 # v0.22.1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           image: ghcr.io/${{ github.repository_owner }}/docker-host@${{steps.build-and-push.outputs.digest}}
