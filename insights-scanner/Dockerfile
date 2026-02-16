@@ -32,7 +32,7 @@ ENV TMPDIR=/tmp \
 ENV KUBECTL_VERSION=v1.30.3
 
 RUN apk add -U --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing aufs-util \
-    && apk add --no-cache curl bash skopeo
+    && apk add --no-cache curl bash skopeo jq
 
 RUN architecture=$(case $(uname -m) in x86_64 | amd64) echo "amd64" ;; aarch64 | arm64 | armv8) echo "arm64" ;; *) echo "amd64" ;; esac) \
     && curl -Lo /usr/bin/kubectl https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/${architecture}/kubectl \
@@ -49,7 +49,7 @@ RUN chmod +x /app/run.sh && /bin/fix-permissions /app/run.sh
 # We'll set DOCKER_HOST to the lagoon default, but with the assumption that it's overridable at runtime by insights-handler
 ENV DOCKER_HOST=docker-host.lagoon.svc
 
-# bring in entrypoint to kill startup if the appropriate DOCLER_HOST isn't found
+# bring in entrypoint to kill startup if the appropriate DOCKER_HOST isn't found
 COPY ./dockerhost-entrypoint.sh /lagoon/entrypoints/100-docker-entrypoint.sh
 
 ENTRYPOINT ["/sbin/tini", "--", "/lagoon/entrypoints.sh"]
