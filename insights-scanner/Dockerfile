@@ -45,8 +45,8 @@ COPY --from=trivy /usr/local/bin/trivy /usr/local/bin/trivy
 # This will increase the overall size of the 
 ENV TRIVY_CACHE_DIR=/
 
-RUN  trivy image --cache-dir . --download-db-only && \
-     trivy image --cache-dir . --download-java-db-only
+RUN  trivy image --cache-dir ${TRIVY_CACHE_DIR} --download-db-only && \
+     trivy image --cache-dir ${TRIVY_CACHE_DIR} --download-java-db-only
 
 WORKDIR /app
 
