@@ -16,7 +16,7 @@ skopeo inspect --retry-times 5 docker://${IMAGE_FULL} --tls-verify=false | gzip 
 processImageInspect() {
   echo "Successfully generated image inspection data for ${IMAGE_FULL}"
 
-  # If lagoon-insights-image-inpsect-[IMAGE] configmap already exists then we need to update, else create new
+  # If lagoon-insights-image-inspect-[IMAGE] configmap already exists then we need to update, else create new
   if kubectl -n ${NAMESPACE} get configmap $IMAGE_INSPECT_CONFIGMAP &> /dev/null; then
       kubectl \
           -n ${NAMESPACE} \
@@ -30,6 +30,22 @@ processImageInspect() {
           create configmap ${IMAGE_INSPECT_CONFIGMAP} \
           --from-file=${IMAGE_INSPECT_OUTPUT_FILE}
   fi
+  if [[ "$BUILD_TYPE" == "pullrequest" ]]; then
+    kubectl -n ${NAMESPACE} \
+      annotate configmap ${IMAGE_INSPECT_CONFIGMAP} \
+      lagoon.sh/branch=${PR_NUMBER} \
+      lagoon.sh/prHeadBranch=${PR_HEAD_BRANCH} \
+      lagoon.sh/prBaseBranch=${PR_BASE_BRANCH}
+  else
+    kubectl -n ${NAMESPACE} \
+      annotate configmap ${IMAGE_INSPECT_CONFIGMAP} \
+      lagoon.sh/branch=${BRANCH}
+  fi
+  if [ "$(featureFlag INSIGHTS_CORE_ENABLED | tr '[:upper:]' '[:lower:]')" = "true" ]; then
+    kubectl -n ${NAMESPACE} \
+      annotate configmap ${IMAGE_INSPECT_CONFIGMAP} \
+      core.insights.lagoon.sh/enabled="true"
+  fi
   kubectl \
       -n ${NAMESPACE} \
       label configmap ${IMAGE_INSPECT_CONFIGMAP} \
@@ -39,6 +55,8 @@ processImageInspect() {
       lagoon.sh/project=${PROJECT} \
       lagoon.sh/environment=${ENVIRONMENT} \
       lagoon.sh/service=${IMAGE_NAME} \
+      lagoon.sh/environmentType=${ENVIRONMENT_TYPE} \
+      lagoon.sh/buildType=${BUILD_TYPE} \
       insights.lagoon.sh/type=inspect
 }
 
@@ -47,7 +65,9 @@ processImageInspect
 echo "Running sbom scan using trivy"
 echo "Image being scanned: ${IMAGE_FULL}"
 
-trivy image ${IMAGE_FULL} --format ${SBOM_OUTPUT} | gzip > ${SBOM_OUTPUT_FILE}
+# Setting JAVAOPT to skip the java db update, as the upstream image comes with a pre-populated database
+JAVAOPT="--skip-java-db-update"
+trivy image ${JAVAOPT} ${IMAGE_FULL} --format ${SBOM_OUTPUT} --skip-version-check | gzip > ${SBOM_OUTPUT_FILE}
 
 FILESIZE=$(stat -c%s "$SBOM_OUTPUT_FILE")
 echo "Size of ${SBOM_OUTPUT_FILE} = $FILESIZE bytes."
@@ -74,6 +94,42 @@ processSbom() {
             create configmap ${SBOM_CONFIGMAP} \
             --from-file=${SBOM_OUTPUT_FILE}
     fi
+    if [[ "$BUILD_TYPE" == "pullrequest" ]]; then
+      kubectl -n ${NAMESPACE} \
+        annotate configmap ${SBOM_CONFIGMAP} \
+        lagoon.sh/branch=${PR_NUMBER} \
+        lagoon.sh/prHeadBranch=${PR_HEAD_BRANCH} \
+        lagoon.sh/prBaseBranch=${PR_BASE_BRANCH}
+    else
+      kubectl -n ${NAMESPACE} \
+        annotate configmap ${SBOM_CONFIGMAP} \
+        lagoon.sh/branch=${BRANCH}
+    fi
+    if [ "$(featureFlag INSIGHTS_CORE_ENABLED | tr '[:upper:]' '[:lower:]')" = "true" ]; then
+      kubectl -n ${NAMESPACE} \
+        annotate configmap ${SBOM_CONFIGMAP} \
+        core.insights.lagoon.sh/enabled="true"
+    fi
+    # Support custom Dependency Track integration.
+    local apiEndpoint
+    apiEndpoint=$(featureFlag INSIGHTS_DEPENDENCY_TRACK_API_ENDPOINT)
+    local apiKey
+    apiKey=$(featureFlag INSIGHTS_DEPENDENCY_TRACK_API_KEY)
+    if [ -n "$apiEndpoint" ]; then
+      if [ -n "$apiKey" ]; then
+        # Test API access
+        local resp
+        if ! resp=$(curl -sSf -m 60 -H "X-Api-Key:${apiKey}" "${apiEndpoint}/api/v1/project?pageSize=1" 2>&1); then
+          echo "Custom Dependency Track not enabled: API Error: ${resp}"
+        else
+          kubectl -n ${NAMESPACE} \
+            annotate configmap ${SBOM_CONFIGMAP} \
+            dependencytrack.insights.lagoon.sh/custom-endpoint="${apiEndpoint}"
+        fi
+      else
+        echo "Custom Dependency Track not enabled: Missing LAGOON_FEATURE_FLAG_INSIGHTS_DEPENDENCY_TRACK_API_KEY"
+      fi
+    fi
     kubectl \
         -n ${NAMESPACE} \
         label configmap ${SBOM_CONFIGMAP} \
@@ -83,6 +139,8 @@ processSbom() {
         lagoon.sh/project=${PROJECT} \
         lagoon.sh/environment=${ENVIRONMENT} \
         lagoon.sh/service=${IMAGE_NAME} \
+        lagoon.sh/environmentType=${ENVIRONMENT_TYPE} \
+        lagoon.sh/buildType=${BUILD_TYPE} \
         insights.lagoon.sh/type=sbom
   fi
 }
