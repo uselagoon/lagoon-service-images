@@ -76,7 +76,7 @@ GEM
       yajl-ruby (~> 1.0)
     http_parser.rb (0.8.0)
     jmespath (1.6.2)
-    json (2.18.1)
+    json (2.19.2)
     logger (1.7.0)
     msgpack (1.8.0)
     multi_json (1.17.0)
