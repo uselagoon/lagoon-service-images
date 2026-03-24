@@ -137,7 +137,7 @@ GEM
     httpclient (2.9.0)
       mutex_m
     jmespath (1.6.2)
-    json (2.18.0)
+    json (2.19.2)
     jsonpath (1.1.5)
       multi_json
     kubeclient (4.13.0)
