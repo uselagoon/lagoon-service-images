@@ -58,7 +58,7 @@
         "patch"
       ],
       "matchPackageNames": [
-        "aquasec/trivy",
+        "anchore/syft",
         "docker"
       ]
     }

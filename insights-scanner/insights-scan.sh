@@ -62,12 +62,10 @@ processImageInspect() {
 
 processImageInspect
 
-echo "Running sbom scan using trivy"
+echo "Running sbom scan using syft"
 echo "Image being scanned: ${IMAGE_FULL}"
 
-# Setting JAVAOPT to skip the java db update, as the upstream image comes with a pre-populated database
-JAVAOPT="--skip-java-db-update"
-trivy image ${JAVAOPT} ${IMAGE_FULL} --format ${SBOM_OUTPUT} --skip-version-check | gzip > ${SBOM_OUTPUT_FILE}
+syft -o cyclonedx-json ${IMAGE_FULL} | gzip > ${SBOM_OUTPUT_FILE}
 
 FILESIZE=$(stat -c%s "$SBOM_OUTPUT_FILE")
 echo "Size of ${SBOM_OUTPUT_FILE} = $FILESIZE bytes."

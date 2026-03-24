@@ -2,7 +2,8 @@ ARG UPSTREAM_REPO
 ARG UPSTREAM_TAG
 ARG GO_VER
 FROM ${UPSTREAM_REPO:-uselagoon}/commons:${UPSTREAM_TAG:-latest} AS commons
-FROM aquasec/trivy:0.68.2 AS trivy
+FROM anchore/syft:v1.42.1 AS syft
+
 
 FROM docker:28.5.2
 
@@ -38,15 +39,7 @@ RUN architecture=$(case $(uname -m) in x86_64 | amd64) echo "amd64" ;; aarch64 |
     && curl -Lo /usr/bin/kubectl https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/${architecture}/kubectl \
     && chmod +x /usr/bin/kubectl
 
-COPY --from=trivy /usr/local/bin/trivy /usr/local/bin/trivy
-
-# Here we want to pull the trivy java DB
-# This needs to be rebuilt daily, since we would like to be able to avoid pulling the javaDB on every scan
-# This will increase the overall size of the 
-ENV TRIVY_CACHE_DIR=/
-
-RUN  trivy image --cache-dir ${TRIVY_CACHE_DIR} --download-db-only && \
-     trivy image --cache-dir ${TRIVY_CACHE_DIR} --download-java-db-only
+COPY --from=syft /syft /usr/local/bin/syft
 
 WORKDIR /app
 
