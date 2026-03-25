@@ -1,0 +1,97 @@
+name: Integration test — logs-dispatcher + logs-concentrator
+
+# Triggered whenever either service or the test harness itself changes.
+# Builds both images and verifies that events flow end-to-end through the
+# pipeline. Intentionally separate from the publish workflows so it runs on
+# PRs without needing registry credentials.
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'build-image'
+    paths:
+      - 'logs-dispatcher/**'
+      - 'logs-concentrator/**'
+      - 'test/logs-dispatcher-concentrator/**'
+      - '.github/workflows/logs-integration-test.yaml'
+  pull_request:
+    branches:
+      - 'main'
+    paths:
+      - 'logs-dispatcher/**'
+      - 'logs-concentrator/**'
+      - 'test/logs-dispatcher-concentrator/**'
+      - '.github/workflows/logs-integration-test.yaml'
+
+jobs:
+  integration-test-bats:
+    runs-on: ubuntu-latest
+    steps:
+      - 
+        name: Checkout PR
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          fetch-depth: "0"
+          ref: ${{ github.event.pull_request.head.sha }}
+      - 
+        name: Checkout Branch or Tag
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        if: ${{ github.event_name != 'pull_request' }}
+        with:
+          fetch-depth: "0"
+      - 
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+      # Build for linux/amd64 (the only platform the fluent/fluentd base image
+      # publishes) and load directly into the local Docker daemon.
+      - 
+        name: Build logs-dispatcher image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: logs-dispatcher
+          platforms: linux/amd64
+          load: true
+          tags: lagoon/logs-dispatcher:test
+      - 
+        name: Build logs-concentrator image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: logs-concentrator
+          platforms: linux/amd64
+          load: true
+          tags: lagoon/logs-concentrator:test
+      - 
+        name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@fb0fe15d936a80ac0ba4c6cee691bc3da3f00f4e # main
+      - 
+        name: Install homebrew packages
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+          HOMEBREW_NO_ENV_HINTS: 1
+        run: |
+          brew install bats-core
+      - 
+        name: Run integration tests (bats)
+        env:
+          DISPATCHER_IMAGE: lagoon/logs-dispatcher:test
+          CONCENTRATOR_IMAGE: lagoon/logs-concentrator:test
+          SKIP_BUILD: "true"
+        run: |
+          bats --tap test/logs-dispatcher-concentrator/logs-pipeline.bats
+      - 
+        name: Dump compose logs on failure
+        if: failure()
+        run: |
+          cd test/logs-dispatcher-concentrator
+          # Find any lingering test project and dump its logs.
+          docker compose ls --format json 2>/dev/null \
+            | grep -o '"logs-test-bats-[^"]*"' \
+            | tr -d '"' \
+            | while read -r proj; do
+                docker compose -p "$proj" \
+                  -f docker-compose.yml \
+                  logs --no-color 2>/dev/null || true
+              done
