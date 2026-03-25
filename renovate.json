@@ -1,5 +1,5 @@
 {
-  "baseBranchPatterns": [
+  "baseBranches": [
     "main"
   ],
   "extends": [
@@ -12,15 +12,30 @@
     "dependencies"
   ],
   "dependencyDashboard": true,
-  "separateMajorMinor": true,
-  "prHourlyLimit": 0,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)Dockerfile$"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)\\nENV \\w+=(?<currentValue>v[0-9]+\\.[0-9]+\\.[0-9]+)"
+      ],
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)Makefile$"],
+      "matchStrings": [
+        "fluent/fluentd:(?<currentValue>v[0-9]+\\.[0-9]+\\.[0-9]+-[0-9.]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "fluent/fluentd",
+      "versioningTemplate": "docker"
+    }
+  ],
   "packageRules": [
     {
       "matchManagers": [
         "github-actions"
-      ],
-      "matchBaseBranches": [
-        "main"
       ],
       "groupName": "GitHub actions monthly minor/patch",
       "matchUpdateTypes": [
@@ -38,9 +53,6 @@
       "matchManagers": [
         "github-actions"
       ],
-      "matchBaseBranches": [
-        "main"
-      ],
       "groupName": "GitHub actions major",
       "matchUpdateTypes": [
         "major"
@@ -49,8 +61,7 @@
       "automergeType": "pr"
     },
     {
-      "enabled": false,
-      "groupName": "Disable patch releases - packages update only major/minor",
+      "groupName": "Docker image patch releases",
       "matchDatasources": [
         "docker"
       ],
@@ -60,7 +71,21 @@
       "matchPackageNames": [
         "anchore/syft",
         "docker"
-      ]
+      ],
+      "schedule": [
+        "on the first day of the month"
+      ],
+      "draftPR": true
+    },
+    {
+      "matchPackageNames": ["kubernetes/kubernetes"],
+      "allowedVersions": "/^v[0-9]+\\.[0-9]+\\.[0-9]+$/",
+      "separateMinorPatch": true
+    },
+    {
+      "matchPackageNames": ["kubernetes/kubernetes"],
+      "matchUpdateTypes": ["minor"],
+      "draftPR": true
     }
   ]
 }
