@@ -1,0 +1,53 @@
+---
+# Integration test stack for logs-dispatcher + logs-concentrator.
+#
+# Both images are configurable via environment variables so CI can inject
+# freshly-built tags without modifying this file:
+#
+#   DISPATCHER_IMAGE=lagoon/logs-dispatcher:test \
+#   CONCENTRATOR_IMAGE=lagoon/logs-concentrator:test \
+#   docker compose up
+#
+# The project name is set by the test harness (run-tests.sh) to avoid
+# collisions when multiple test runs execute concurrently.
+
+services:
+  logs-concentrator:
+    image: ${CONCENTRATOR_IMAGE:-lagoon/logs-concentrator:latest}
+    # fluent/fluentd base image is amd64-only; declare explicitly so Docker
+    # Desktop on Apple Silicon doesn't warn about a platform mismatch.
+    platform: linux/amd64
+    volumes:
+      - ./concentrator-test.conf:/fluentd/etc/fluent.conf:ro
+      - output:/fluentd/log
+    healthcheck:
+      # The monitor_agent HTTP endpoint returning 200 proves the worker is up
+      # and has successfully parsed/loaded the configuration.
+      test: ["CMD", "curl", "-sf", "http://localhost:24220/api/plugins.json"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 15s
+
+  logs-dispatcher:
+    image: ${DISPATCHER_IMAGE:-lagoon/logs-dispatcher:latest}
+    platform: linux/amd64
+    ports:
+      # Expose HTTP input on the host so the test script can inject events
+      # with a simple curl call. Override the host port via DISPATCHER_HTTP_PORT
+      # if 9880 is already in use.
+      - "${DISPATCHER_HTTP_PORT:-9880}:9880"
+    volumes:
+      - ./dispatcher-test.conf:/fluentd/etc/fluent.conf:ro
+    depends_on:
+      logs-concentrator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:24220/api/plugins.json"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 15s
+
+volumes:
+  output:

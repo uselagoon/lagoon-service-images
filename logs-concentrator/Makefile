@@ -1,6 +1,15 @@
 .PHONY: build
 build:
-	docker build . -t lagoon/logs-concentrator:latest
+	docker build --platform linux/amd64 . -t lagoon/logs-concentrator:latest
+
+.PHONY: test
+test:
+	docker build --platform linux/amd64 . -t lagoon/logs-concentrator:test
+	docker build --platform linux/amd64 ../logs-dispatcher -t lagoon/logs-dispatcher:test
+	cd .. && SKIP_BUILD=true \
+	  DISPATCHER_IMAGE=lagoon/logs-dispatcher:test \
+	  CONCENTRATOR_IMAGE=lagoon/logs-concentrator:test \
+	  bats test/logs-dispatcher-concentrator/logs-pipeline.bats
 
 .PHONY: update-gemfile
 update-gemfile:
