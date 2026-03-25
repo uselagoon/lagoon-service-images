@@ -1,5 +1,8 @@
 name: Integration test — logs-dispatcher + logs-concentrator
 
+permissions:
+  contents: read
+
 # Triggered whenever either service or the test harness itself changes.
 # Builds both images and verifies that events flow end-to-end through the
 # pipeline. Intentionally separate from the publish workflows so it runs on
