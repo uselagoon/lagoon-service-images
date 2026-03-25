@@ -3,9 +3,13 @@ build:
 	docker build --platform linux/amd64 . -t lagoon/logs-concentrator:latest
 
 .PHONY: test
-test: build
-	docker build --platform linux/amd64 ../logs-dispatcher -t lagoon/logs-dispatcher:latest
-	cd .. && SKIP_BUILD=true bats test/logs-dispatcher-concentrator/logs-pipeline.bats
+test:
+	docker build --platform linux/amd64 . -t lagoon/logs-concentrator:test
+	docker build --platform linux/amd64 ../logs-dispatcher -t lagoon/logs-dispatcher:test
+	cd .. && SKIP_BUILD=true \
+	  DISPATCHER_IMAGE=lagoon/logs-dispatcher:test \
+	  CONCENTRATOR_IMAGE=lagoon/logs-concentrator:test \
+	  bats test/logs-dispatcher-concentrator/logs-pipeline.bats
 
 .PHONY: update-gemfile
 update-gemfile:

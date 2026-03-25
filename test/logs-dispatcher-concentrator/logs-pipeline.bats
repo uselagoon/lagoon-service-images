@@ -12,8 +12,10 @@
 #   CONCENTRATOR_IMAGE   (default: lagoon/logs-concentrator:latest)
 #   DISPATCHER_HTTP_PORT (default: 9880)
 #   SKIP_BUILD           set to "true" to skip docker build
-#   BUILD_PLATFORM       (optional) e.g. linux/amd64 or linux/arm64; omit to
-#                        let Docker pick the native host platform automatically
+#   BUILD_PLATFORM       platform passed to docker build
+#                        (default: linux/amd64 — matches the compose stack,
+#                        which pins linux/amd64 because fluent/fluentd only
+#                        publishes that platform)
 
 # ---------------------------------------------------------------------------
 # File-level constants — sourced into every test subshell by bats-core.
@@ -60,12 +62,10 @@ setup_file() {
   local concentrator_image="${CONCENTRATOR_IMAGE:-lagoon/logs-concentrator:latest}"
   local http_port="${DISPATCHER_HTTP_PORT:-9880}"
   local skip_build="${SKIP_BUILD:-false}"
-  local build_platform="${BUILD_PLATFORM:-}" # empty = let Docker pick natively
-
-  # Build platform flag — only set when explicitly requested so we never
-  # force a cross-platform build that conflicts with a locally-cached base image.
-  local platform_flag=()
-  [[ -n "$build_platform" ]] && platform_flag=("--platform" "$build_platform")
+  # Default to linux/amd64 to match the platform: linux/amd64 pin in
+  # docker-compose.yml (fluent/fluentd only publishes amd64 images).
+  local build_platform="${BUILD_PLATFORM:-linux/amd64}"
+  local platform_flag=("--platform" "$build_platform")
 
   local run_id project
   run_id="$(date +%s)-$$"
@@ -130,8 +130,19 @@ setup_file() {
     -H 'Content-Type: application/json' \
     -d "{\"message\":\"minimal-${run_id}\"}"
 
-  # Allow time for the pipeline to propagate events through to the file sink.
-  sleep 8
+  # Poll until the last-sent marker appears in the concentrator, rather than
+  # using a fixed sleep, so the suite is both faster and more deterministic.
+  local deadline=$(( $(date +%s) + 30 ))
+  while [[ $(date +%s) -lt $deadline ]]; do
+    local live_output
+    live_output=$(docker compose -p "$project" -f "$COMPOSE_FILE" \
+      exec -T logs-concentrator \
+      sh -c 'cat /fluentd/log/test-output*.log 2>/dev/null || true')
+    if echo "$live_output" | grep -qF "minimal-${run_id}"; then
+      break
+    fi
+    sleep 2
+  done
 
   # Capture the concentrator file output and service logs for the assertion
   # tests to reference — written to files so test subshells can read them.
