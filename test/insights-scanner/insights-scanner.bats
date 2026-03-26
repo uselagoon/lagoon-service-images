@@ -78,6 +78,7 @@ teardown_file() {
 @test "syft version matches Dockerfile" {
   local expected_version
   expected_version="$(grep -oE 'anchore/syft:v[0-9]+\.[0-9]+\.[0-9]+' "${REPO_ROOT}/insights-scanner/Dockerfile" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')"
+  [ -n "$expected_version" ] # guard: grep must have matched
   run _exec syft version
   [ "$status" -eq 0 ]
   [[ "$output" == *"${expected_version}"* ]]
@@ -86,6 +87,7 @@ teardown_file() {
 @test "kubectl version matches Dockerfile" {
   local expected_version
   expected_version="$(grep -oE 'KUBECTL_VERSION=v[0-9]+\.[0-9]+\.[0-9]+' "${REPO_ROOT}/insights-scanner/Dockerfile" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')"
+  [ -n "$expected_version" ] # guard: grep must have matched
   run _exec kubectl version --client
   [ "$status" -eq 0 ]
   [[ "$output" == *"${expected_version}"* ]]
@@ -186,6 +188,7 @@ teardown_file() {
 @test "featureFlag: falls back to default when no other flags are set" {
   run _exec bash -c '
     unset INSIGHT_SCAN_IMAGES
+    LAGOON_ENVIRONMENT_VARIABLES="[]"
     source /app/run.sh
     LAGOON_FEATURE_FLAG_DEFAULT_MY_FLAG=default_val featureFlag MY_FLAG
   '
@@ -196,6 +199,7 @@ teardown_file() {
 @test "featureFlag: returns empty string when no flags are set" {
   run _exec bash -c '
     unset INSIGHT_SCAN_IMAGES
+    LAGOON_ENVIRONMENT_VARIABLES="[]"
     source /app/run.sh
     result=$(featureFlag MY_FLAG)
     echo -n "$result"
@@ -280,6 +284,7 @@ teardown_file() {
   container=$(<"${BATS_FILE_TMPDIR}/container")
   run docker exec \
     -e "LAGOON_FEATURE_FLAG_FORCE_INSIGHTS_CORE_ENABLED=true" \
+    -e "LAGOON_ENVIRONMENT_VARIABLES=[]" \
     "$container" \
     bash -c '
       unset INSIGHT_SCAN_IMAGES
@@ -295,6 +300,27 @@ teardown_file() {
   container=$(<"${BATS_FILE_TMPDIR}/container")
   run docker exec \
     -e "LAGOON_FEATURE_FLAG_DEFAULT_INSIGHTS_SBOM_ENABLED=true" \
+    -e "LAGOON_ENVIRONMENT_VARIABLES=[]" \
+    "$container" \
+    bash -c '
+      unset INSIGHT_SCAN_IMAGES
+      source /app/run.sh
+      featureFlag INSIGHTS_SBOM_ENABLED
+    '
+  [ "$status" -eq 0 ]
+  [ "$output" = "true" ]
+}
+
+@test "featureFlag: INSIGHTS_SBOM_ENABLED read from LAGOON_ENVIRONMENT_VARIABLES JSON" {
+  # Simulates an operator setting LAGOON_FEATURE_FLAG_INSIGHTS_SBOM_ENABLED as
+  # a Lagoon project build variable (scope: build).  insights-remote copies the
+  # entire LAGOON_ENVIRONMENT_VARIABLES blob onto the scan pod; featureFlag must
+  # retrieve the value via buildEnvVarCheck without any direct env var present.
+  local container env_json
+  container=$(<"${BATS_FILE_TMPDIR}/container")
+  env_json='[{"name":"LAGOON_FEATURE_FLAG_INSIGHTS_SBOM_ENABLED","value":"true","scope":"build"}]'
+  run docker exec \
+    -e "LAGOON_ENVIRONMENT_VARIABLES=${env_json}" \
     "$container" \
     bash -c '
       unset INSIGHT_SCAN_IMAGES
