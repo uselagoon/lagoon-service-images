@@ -2,7 +2,7 @@ ARG UPSTREAM_REPO
 ARG UPSTREAM_TAG
 ARG GO_VER
 FROM ${UPSTREAM_REPO:-uselagoon}/commons:${UPSTREAM_TAG:-latest} AS commons
-FROM anchore/syft:v1.42.1 AS syft
+FROM anchore/syft:v1.42.3 AS syft
 
 
 FROM docker:28.5.2
@@ -19,7 +19,8 @@ COPY --from=commons /sbin/tini /sbin/
 COPY --from=commons /home /home
 
 RUN chmod g+w /etc/passwd \
-    && mkdir -p /home
+    && mkdir -p /home \
+    && mkdir -p /home/.docker
 
 ENV TMPDIR=/tmp \
     TMP=/tmp \
@@ -31,7 +32,7 @@ ENV TMPDIR=/tmp \
 
 # Defining Versions
 # renovate: datasource=github-tags depName=kubernetes/kubernetes
-ENV KUBECTL_VERSION=v1.30.3
+ENV KUBECTL_VERSION=v1.34.6
 
 RUN apk add -U --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing aufs-util \
     && apk add --no-cache curl bash skopeo jq
