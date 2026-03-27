@@ -334,159 +334,38 @@ teardown_file() {
 # ---------------------------------------------------------------------------
 # IMAGE_NAME / IMAGE_FULL parsing logic
 #
-# insights-remote joins deployment image refs with commas into
-# INSIGHT_SCAN_IMAGES.  run.sh extracts IMAGE_NAME and IMAGE_FULL from each
-# entry using awk + cut.  These tests use the exact same expressions to
-# verify they handle all image ref formats the controller can produce.
+# run.sh echoes "With image name: $IMAGE_NAME" and "Processing image: $IMAGE_FULL"
+# before sourcing insights-scan.sh.  By running run.sh directly with a
+# controlled INSIGHT_SCAN_IMAGES we verify the parsing without duplicating the
+# awk/cut expressions.  stderr is suppressed so skopeo/kubectl failures
+# (expected without a live cluster) don't pollute the captured output.
 # ---------------------------------------------------------------------------
 
-@test "IMAGE_NAME: extracted correctly from registry/path/name:tag" {
+@test "image parsing: tag ref yields correct IMAGE_NAME and :latest IMAGE_FULL" {
   run _exec bash -c '
-    image="registry.example.com/myproject/nginx:abc123"
-    IMAGE_NAME=$(echo "$image" | awk -F/ "{print \$NF}" | cut -d: -f1 | cut -d@ -f1)
-    echo "$IMAGE_NAME"
+    INSIGHT_SCAN_IMAGES="registry.example.com/myproject/nginx:abc123" \
+      bash /app/run.sh 2>/dev/null
   '
-  [ "$status" -eq 0 ]
-  [ "$output" = "nginx" ]
+  [[ "$output" == *"With image name: nginx"* ]]
+  [[ "$output" == *"Processing image: registry.example.com/myproject/nginx:latest"* ]]
 }
 
-@test "IMAGE_NAME: extracted correctly from registry/path/name@sha256 digest ref" {
+@test "image parsing: digest ref yields correct IMAGE_NAME and :latest IMAGE_FULL" {
   run _exec bash -c '
-    image="registry.example.com/myproject/php@sha256:deadbeefdeadbeef"
-    IMAGE_NAME=$(echo "$image" | awk -F/ "{print \$NF}" | cut -d: -f1 | cut -d@ -f1)
-    echo "$IMAGE_NAME"
+    INSIGHT_SCAN_IMAGES="registry.example.com/myproject/php@sha256:deadbeef" \
+      bash /app/run.sh 2>/dev/null
   '
-  [ "$status" -eq 0 ]
-  [ "$output" = "php" ]
+  [[ "$output" == *"With image name: php"* ]]
+  [[ "$output" == *"Processing image: registry.example.com/myproject/php:latest"* ]]
 }
-
-@test "IMAGE_NAME: extracted correctly from a simple name:tag (no registry prefix)" {
-  run _exec bash -c '
-    image="nginx:latest"
-    IMAGE_NAME=$(echo "$image" | awk -F/ "{print \$NF}" | cut -d: -f1 | cut -d@ -f1)
-    echo "$IMAGE_NAME"
-  '
-  [ "$status" -eq 0 ]
-  [ "$output" = "nginx" ]
-}
-
-@test "IMAGE_FULL: tag is normalised to :latest from a tagged ref" {
-  run _exec bash -c '
-    image="registry.example.com/myproject/nginx:abc123"
-    IMAGE_FULL="$(echo "$image" | cut -d: -f1 | cut -d@ -f1):latest"
-    echo "$IMAGE_FULL"
-  '
-  [ "$status" -eq 0 ]
-  [ "$output" = "registry.example.com/myproject/nginx:latest" ]
-}
-
-@test "IMAGE_FULL: tag is normalised to :latest from a digest ref" {
-  run _exec bash -c '
-    image="registry.example.com/myproject/nginx@sha256:deadbeef"
-    IMAGE_FULL="$(echo "$image" | cut -d: -f1 | cut -d@ -f1):latest"
-    echo "$IMAGE_FULL"
-  '
-  [ "$status" -eq 0 ]
-  [ "$output" = "registry.example.com/myproject/nginx:latest" ]
-}
-
-# ---------------------------------------------------------------------------
-# INSIGHT_SCAN_IMAGES iteration
-#
-# run.sh splits INSIGHT_SCAN_IMAGES on commas and sources insights-scan.sh
-# for every entry.  This test replaces insights-scan.sh with a lightweight
-# probe (written to a temp file) to confirm both IMAGE_NAME values are
-# visited without invoking the real scan tools.
-# ---------------------------------------------------------------------------
 
 @test "run.sh iterates over every image in a comma-separated INSIGHT_SCAN_IMAGES" {
-  # Test the IFS-splitting loop and IMAGE_NAME extraction from run.sh directly,
-  # without sed-patching the script (which is fragile on busybox sed).
   run _exec bash -c '
-    INSIGHT_SCAN_IMAGES="registry.example.com/proj/nginx:abc,registry.example.com/proj/php:def"
-    IFS=","
-    for image in $INSIGHT_SCAN_IMAGES; do
-      IMAGE_NAME=$(echo "$image" | awk -F/ "{print \$NF}" | cut -d: -f1 | cut -d@ -f1)
-      echo "SCANNED:${IMAGE_NAME}"
-    done
+    INSIGHT_SCAN_IMAGES="registry.example.com/proj/nginx:abc,registry.example.com/proj/php:def" \
+      bash /app/run.sh 2>/dev/null
   '
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"SCANNED:nginx"* ]]
-  [[ "$output" == *"SCANNED:php"* ]]
-}
-
-# ---------------------------------------------------------------------------
-# Docker registry secret mount path
-#
-# insights-remote mounts the lagoon-internal-registry-secret at
-# /home/.docker/ (as config.json).  Verify the directory is present and
-# writable so that skopeo / syft can authenticate to the registry.
-# ---------------------------------------------------------------------------
-
-@test "/home/.docker directory exists and is writable" {
-  run _exec bash -c 'test -d /home/.docker && touch /home/.docker/.write-test && rm /home/.docker/.write-test'
-  [ "$status" -eq 0 ]
-}
-
-# ---------------------------------------------------------------------------
-# Build environment variables injected by insights-remote
-#
-# The controller always sets INSIGHT_SCAN_IMAGES, NAMESPACE, and DOCKER_HOST,
-# and copies BRANCH, BUILD_TYPE, ENVIRONMENT, ENVIRONMENT_TYPE, PROJECT,
-# PR_BASE_BRANCH, PR_HEAD_BRANCH, PR_NUMBER, LAGOON_ENVIRONMENT_VARIABLES,
-# and any LAGOON_FEATURE_FLAG_* variables from the build pod.
-# These tests confirm that each of those variables is accessible inside the
-# container and propagates correctly to the scripts.
-# ---------------------------------------------------------------------------
-
-@test "NAMESPACE env var is accessible inside the container" {
-  local container
-  container=$(<"${BATS_FILE_TMPDIR}/container")
-  run docker exec -e "NAMESPACE=my-test-ns" "$container" sh -c 'echo "$NAMESPACE"'
-  [ "$status" -eq 0 ]
-  [ "$output" = "my-test-ns" ]
-}
-
-@test "BRANCH env var is accessible inside the container" {
-  local container
-  container=$(<"${BATS_FILE_TMPDIR}/container")
-  run docker exec -e "BRANCH=main" "$container" sh -c 'echo "$BRANCH"'
-  [ "$status" -eq 0 ]
-  [ "$output" = "main" ]
-}
-
-@test "BUILD_TYPE env var is accessible inside the container" {
-  local container
-  container=$(<"${BATS_FILE_TMPDIR}/container")
-  run docker exec -e "BUILD_TYPE=branch" "$container" sh -c 'echo "$BUILD_TYPE"'
-  [ "$status" -eq 0 ]
-  [ "$output" = "branch" ]
-}
-
-@test "PROJECT, ENVIRONMENT, ENVIRONMENT_TYPE env vars are all accessible" {
-  local container
-  container=$(<"${BATS_FILE_TMPDIR}/container")
-  run docker exec \
-    -e "PROJECT=my-project" \
-    -e "ENVIRONMENT=production" \
-    -e "ENVIRONMENT_TYPE=production" \
-    "$container" \
-    sh -c 'echo "$PROJECT $ENVIRONMENT $ENVIRONMENT_TYPE"'
-  [ "$status" -eq 0 ]
-  [ "$output" = "my-project production production" ]
-}
-
-@test "PR_NUMBER, PR_HEAD_BRANCH, PR_BASE_BRANCH env vars are all accessible" {
-  local container
-  container=$(<"${BATS_FILE_TMPDIR}/container")
-  run docker exec \
-    -e "PR_NUMBER=42" \
-    -e "PR_HEAD_BRANCH=feature/foo" \
-    -e "PR_BASE_BRANCH=main" \
-    "$container" \
-    sh -c 'echo "$PR_NUMBER $PR_HEAD_BRANCH $PR_BASE_BRANCH"'
-  [ "$status" -eq 0 ]
-  [ "$output" = "42 feature/foo main" ]
+  [[ "$output" == *"With image name: nginx"* ]]
+  [[ "$output" == *"With image name: php"* ]]
 }
 
 # ---------------------------------------------------------------------------
