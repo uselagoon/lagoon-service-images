@@ -7,6 +7,7 @@ on:
       - 'build-image'
     paths:
       - 'insights-scanner/**'
+      - 'test/insights-scanner/**'
       - '.github/workflows/insights-scanner-image.yaml'
     tags:
       - 'insights-scanner-v*.*.*'
@@ -15,6 +16,7 @@ on:
       - 'main'
     paths:
       - 'insights-scanner/**'
+      - 'test/insights-scanner/**'
       - '.github/workflows/insights-scanner-image.yaml'
 
 jobs:
@@ -90,6 +92,32 @@ jobs:
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+      -
+        name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@fb0fe15d936a80ac0ba4c6cee691bc3da3f00f4e # main
+      -
+        name: Install bats-core
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+          HOMEBREW_NO_ENV_HINTS: 1
+        run: |
+          brew install bats-core
+      -
+        name: Build insights-scanner image for testing
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        with:
+          context: insights-scanner
+          platforms: linux/amd64
+          load: true
+          tags: lagoon/insights-scanner:test
+      -
+        name: Run BATS tests
+        env:
+          SCANNER_IMAGE: lagoon/insights-scanner:test
+          SKIP_BUILD: "true"
+        run: |
+          bats --tap test/insights-scanner/insights-scanner.bats
       -
         name: Login to DockerHub
         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
