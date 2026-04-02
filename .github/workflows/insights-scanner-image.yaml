@@ -94,7 +94,7 @@ jobs:
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
       -
         name: Set up Homebrew
-        uses: Homebrew/actions/setup-homebrew@b2a302b9a642580cae998e6ba2076ffd28e61317 # main
+        uses: Homebrew/actions/setup-homebrew@83bdac2a10b90af5036d2905fd5c2831fefd42bd # main
       -
         name: Install bats-core
         env:
