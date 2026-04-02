@@ -56,7 +56,7 @@ GEM
       faraday_middleware-aws-sigv4 (~> 1.0.1)
       fluentd (>= 0.14.22)
       opensearch-ruby (>= 3.0.1)
-    fluent-plugin-prometheus (2.2.1)
+    fluent-plugin-prometheus (2.2.2)
       fluentd (>= 1.9.1, < 2)
       prometheus-client (>= 2.1.0)
     fluentd (1.18.0)
@@ -109,7 +109,7 @@ PLATFORMS
 DEPENDENCIES
   fluent-plugin-elasticsearch (= 6.0.0)
   fluent-plugin-opensearch (= 1.1.5)
-  fluent-plugin-prometheus (= 2.2.1)
+  fluent-plugin-prometheus (= 2.2.2)
   fluentd (= 1.18.0)
 
 BUNDLED WITH
