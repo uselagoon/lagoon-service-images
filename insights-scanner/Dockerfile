@@ -2,7 +2,7 @@ ARG UPSTREAM_REPO
 ARG UPSTREAM_TAG
 ARG GO_VER
 FROM ${UPSTREAM_REPO:-uselagoon}/commons:${UPSTREAM_TAG:-latest} AS commons
-FROM anchore/syft:v1.42.3 AS syft
+FROM anchore/syft:v1.43.0 AS syft
 
 
 FROM docker:28.5.2
