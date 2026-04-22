@@ -32,7 +32,7 @@ ENV TMPDIR=/tmp \
 
 # Defining Versions
 # renovate: datasource=github-tags depName=kubernetes/kubernetes
-ENV KUBECTL_VERSION=v1.34.6
+ENV KUBECTL_VERSION=v1.36.0
 
 RUN apk add -U --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing aufs-util \
     && apk add --no-cache curl bash skopeo jq
