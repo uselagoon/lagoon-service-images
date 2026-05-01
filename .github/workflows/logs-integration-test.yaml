@@ -51,7 +51,7 @@ jobs:
       # publishes) and load directly into the local Docker daemon.
       - 
         name: Build logs-dispatcher image
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: logs-dispatcher
           platforms: linux/amd64
@@ -59,7 +59,7 @@ jobs:
           tags: lagoon/logs-dispatcher:test
       - 
         name: Build logs-concentrator image
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: logs-concentrator
           platforms: linux/amd64
@@ -67,7 +67,7 @@ jobs:
           tags: lagoon/logs-concentrator:test
       - 
         name: Set up Homebrew
-        uses: Homebrew/actions/setup-homebrew@83bdac2a10b90af5036d2905fd5c2831fefd42bd # main
+        uses: Homebrew/actions/setup-homebrew@51347a66bfd5b30903757d0b64ba2ca462e9ab38 # main
       - 
         name: Install homebrew packages
         env:
