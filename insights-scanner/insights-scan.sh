@@ -65,7 +65,7 @@ processImageInspect
 echo "Running sbom scan using syft"
 echo "Image being scanned: ${IMAGE_FULL}"
 
-syft -o cyclonedx-json ${IMAGE_FULL} | gzip > ${SBOM_OUTPUT_FILE}
+syft -o cyclonedx-json@${CYCLONEDX_VERSION:-1.6} ${IMAGE_FULL} | gzip > ${SBOM_OUTPUT_FILE}
 
 FILESIZE=$(stat -c%s "$SBOM_OUTPUT_FILE")
 echo "Size of ${SBOM_OUTPUT_FILE} = $FILESIZE bytes."
