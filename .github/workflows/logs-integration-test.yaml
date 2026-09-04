@@ -46,7 +46,7 @@ jobs:
           fetch-depth: "0"
       - 
         name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
       # Build for linux/amd64 (the only platform the fluent/fluentd base image
       # publishes) and load directly into the local Docker daemon.
       - 
@@ -67,7 +67,7 @@ jobs:
           tags: lagoon/logs-concentrator:test
       - 
         name: Set up Homebrew
-        uses: Homebrew/actions/setup-homebrew@5037c6f1012cc5ea0b9f03fedbaf9955ed9e51e0 # main
+        uses: Homebrew/actions/setup-homebrew@f8d4222eb633e65c2a0157383cf80861fc7fae7f # main
       - 
         name: Install homebrew packages
         env:
