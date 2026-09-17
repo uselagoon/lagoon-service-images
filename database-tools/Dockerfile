@@ -9,6 +9,6 @@ RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.17/community' >> /etc/apk/repo
 	grep \
 	sed \
 	mongodb-tools=4.2.14-r17 \
-	mysql-client=10.11.6-r0 \
+	mysql-client=11.8.8-r0 \
 	postgresql-client \
 	&& rm -rf /var/cache/apk/*
