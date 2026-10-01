@@ -62,8 +62,12 @@ IFS=','
 for image in $INSIGHT_SCAN_IMAGES; do
     # Populate the variable IMAGE_FULL for each iteration
     # IMAGE_FULL="$image"
+    IMAGE_TAG="${IMAGE_TAG:-latest}"
+    if [ "$(featureFlag USE_BUILD_AS_IMAGE_TAG | tr '[:upper:]' '[:lower:]')" = enabled ]; then
+      IMAGE_TAG="${LAGOON_BUILD_NAME}"
+    fi
     IMAGE_NAME=$(echo "$image" | awk -F'/' '{print $NF}' | cut -d':' -f1 | cut -d'@' -f1)
-    IMAGE_FULL="$(echo "$image" | cut -d':' -f1 | cut -d'@' -f1):latest"
+    IMAGE_FULL="$(echo "$image" | cut -d':' -f1 | cut -d'@' -f1):${IMAGE_TAG}"
     
     echo "Processing image: $IMAGE_FULL"
     echo "With image name: $IMAGE_NAME"    
