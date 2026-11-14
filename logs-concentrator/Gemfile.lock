@@ -79,7 +79,7 @@ GEM
     jmespath (1.6.2)
     json (2.19.2)
     logger (1.7.0)
-    msgpack (1.8.0)
+    msgpack (1.8.7)
     multi_json (1.19.1)
     net-http (0.9.1)
       uri (>= 0.11.1)
