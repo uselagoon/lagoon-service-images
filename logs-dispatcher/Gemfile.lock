@@ -153,7 +153,7 @@ GEM
       logger
       mime-types-data (~> 3.2025, >= 3.2025.0507)
     mime-types-data (3.2026.0317)
-    msgpack (1.8.0)
+    msgpack (1.8.7)
     multi_json (1.19.1)
     mutex_m (0.3.0)
     net-http-persistent (4.0.8)
