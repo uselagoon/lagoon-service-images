@@ -19,7 +19,7 @@ update-gemfile:
 		-v $$PWD/Gemfile.lock:/tmp/Gemfile.lock \
 		-w /tmp \
 		--entrypoint bundle \
-		fluent/fluentd:v1.18.0-1.3 \
+		fluent/fluentd:v1.20.1-1.3 \
 		lock --update
 
 .PHONY: bundle-outdated
@@ -30,5 +30,5 @@ bundle-outdated:
 		-v $$PWD/Gemfile.lock:/tmp/Gemfile.lock \
 		-w /tmp \
 		--entrypoint bundle \
-		fluent/fluentd:v1.18.0-1.3 \
+		fluent/fluentd:v1.20.1-1.3 \
 		outdated --only-explicit
